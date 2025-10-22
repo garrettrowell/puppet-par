@@ -1,0 +1,19 @@
+---
+# Failing test playbook for PAR acceptance tests
+# Purpose: Test error handling when playbook fails
+# Expected: Always fails with non-zero exit code
+
+- name: Failing playbook test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  
+  tasks:
+    - name: Display message before failure
+      ansible.builtin.debug:
+        msg: "This playbook will intentionally fail"
+      changed_when: false
+    
+    - name: Intentional failure task
+      ansible.builtin.fail:
+        msg: "Intentional failure for PAR error handling test"

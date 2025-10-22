@@ -5,7 +5,9 @@
   "summary": "",
   "license": "MIT",
   "source": "",
-  "dependencies": [],
+  "dependencies": [
+
+  ],
   "operatingsystem_support": [
     {
       "operatingsystem": "CentOS",

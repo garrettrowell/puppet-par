@@ -2,39 +2,40 @@
   ============================================================================
   SYNC IMPACT REPORT
   ============================================================================
-  Version Change: [NEW] → 1.0.0
+  Version Change: 1.0.0 → 1.1.0
   
-  This is the initial constitution ratification for the puppet-par module.
+  Amendment: Added PDK template management requirement to Principle I.
   
   Modified Principles:
-  - [NEW] I. Puppet Standards & PDK First
-  - [NEW] II. Test-Driven Development (RSpec/Cucumber)
-  - [NEW] III. Documentation Standards (Puppet Strings)
-  - [NEW] IV. Validation & Quality Gates
-  - [NEW] V. Code Quality & Idiomatic Puppet
+  - [UPDATED] I. Puppet Standards & PDK First
+    * Added requirement: PDK-managed files must be modified via .sync.yml + pdk update
+    * Rationale: Ensures customizations persist across PDK updates
   
-  Added Sections:
-  - Core Principles (all 5 principles)
-  - Technology Stack Requirements
-  - Development Workflow
-  - Governance
+  Unchanged Principles:
+  - II. Test-Driven Development (RSpec/Cucumber)
+  - III. Documentation Standards (Puppet Strings)
+  - IV. Validation & Quality Gates
+  - V. Code Quality & Idiomatic Puppet
   
-  Removed Sections:
-  - None (initial version)
+  Impact Analysis:
+  - Development workflow now requires .sync.yml updates for Gemfile, Rakefile, etc.
+  - Example: Adding cucumber/aruba gems requires .sync.yml configuration
+  - No breaking changes to existing code
+  - Prevents accidental loss of customizations during pdk update
   
   Templates Status:
-  ✅ plan-template.md - Reviewed, compatible with Puppet module structure
-  ✅ spec-template.md - Reviewed, compatible with feature specification workflow
-  ✅ tasks-template.md - Reviewed, compatible with task breakdown approach
-  ✅ agent-file-template.md - Reviewed, compatible with project guidelines
-  ✅ checklist-template.md - Reviewed, compatible with quality checklists
+  ✅ plan-template.md - No changes required
+  ✅ spec-template.md - No changes required
+  ✅ tasks-template.md - No changes required
+  ✅ agent-file-template.md - No changes required
+  ✅ checklist-template.md - No changes required
   
   Command Files Status:
-  ✅ .github/prompts/speckit.constitution.prompt.md - Self-referential, aligned
-  ✅ .github/prompts/*.prompt.md - All reviewed, no agent-specific references found
+  ✅ .github/prompts/*.prompt.md - No changes required
   
   Follow-up TODOs:
-  - None - all placeholders filled
+  - Document common .sync.yml patterns in project documentation
+  - Add .sync.yml examples to README or CONTRIBUTING guide
   
   ============================================================================
 -->
@@ -53,8 +54,9 @@ All Puppet code MUST adhere to Puppet Development Kit (PDK) standards and conven
 - Metadata MUST be declared in metadata.json following Puppet Forge standards
 - Code MUST support Puppet 7.24+ as defined in metadata.json requirements
 - All supported operating systems MUST be explicitly declared in metadata.json
+- **PDK-Managed Files**: Any modifications to PDK-managed files (Gemfile, Rakefile, .rubocop.yml, etc.) MUST be made via `.sync.yml` configuration, followed by `pdk update` to apply changes. NEVER edit PDK-managed files directly as changes will be lost on next PDK update.
 
-**Rationale**: PDK ensures consistency, maintainability, and compatibility across the Puppet ecosystem. Standard structure enables automated tooling and community collaboration.
+**Rationale**: PDK ensures consistency, maintainability, and compatibility across the Puppet ecosystem. Standard structure enables automated tooling and community collaboration. The `.sync.yml` approach ensures customizations persist across PDK updates.
 
 ### II. Test-Driven Development (RSpec/Cucumber) (NON-NEGOTIABLE)
 
@@ -155,4 +157,4 @@ This constitution supersedes all other development practices and conventions. Al
 - Automated gates (PDK validate, test suite) enforce non-negotiable principles
 - Use `.specify/templates/agent-file-template.md` for runtime development guidance
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-22 | **Last Amended**: 2025-10-22
+**Version**: 1.1.0 | **Ratified**: 2025-10-22 | **Last Amended**: 2025-10-22
