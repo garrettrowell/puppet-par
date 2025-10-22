@@ -54,9 +54,9 @@ This task list implements a Puppet custom type and provider named `par` that exe
 
 **Tasks**:
 
-- [ ] T015 [P] Create spec/spec_helper.rb with RSpec configuration for puppet-rspec
-- [ ] T016 [P] Create spec/acceptance/support/env.rb for Cucumber environment setup
-- [ ] T017 Verify ansible-playbook is available in test environment PATH
+- [x] T015 [P] Create spec/spec_helper.rb with RSpec configuration for puppet-rspec
+- [x] T016 [P] Create spec/acceptance/support/env.rb for Cucumber environment setup
+- [x] T017 Verify ansible-playbook is available in test environment PATH
 
 **Validation**: RSpec and Cucumber can load without errors, ansible-playbook found.
 
