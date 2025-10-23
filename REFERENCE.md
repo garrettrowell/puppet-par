@@ -61,9 +61,85 @@ Default value: `present`
 
 The following parameters are available in the `par` type.
 
+* [`check_mode`](#-par--check_mode)
+* [`environment`](#-par--environment)
+* [`limit`](#-par--limit)
 * [`name`](#-par--name)
 * [`playbook`](#-par--playbook)
+* [`playbook_vars`](#-par--playbook_vars)
 * [`provider`](#-par--provider)
+* [`skip_tags`](#-par--skip_tags)
+* [`start_at_task`](#-par--start_at_task)
+* [`tags`](#-par--tags)
+* [`timeout`](#-par--timeout)
+* [`user`](#-par--user)
+* [`verbose`](#-par--verbose)
+
+##### <a name="-par--check_mode"></a>`check_mode`
+
+Valid values: `true`, `false`, `yes`, `no`
+
+Run Ansible in check mode (dry-run) (optional).
+
+When set to true, runs ansible-playbook with the --check flag, which
+performs a dry-run without making any changes to the system. This is
+Ansible's equivalent of Puppet's noop mode.
+
+Note: This is different from Puppet's --noop flag. When Puppet runs in
+noop mode, the PAR provider skips execution entirely. This parameter
+enables Ansible's own check mode during normal Puppet runs.
+
+@example Run in check mode
+  par { 'test-playbook':
+    playbook   => '/etc/ansible/playbooks/changes.yml',
+    check_mode => true,
+  }
+
+##### <a name="-par--environment"></a>`environment`
+
+Additional environment variables for ansible-playbook execution (optional).
+
+This parameter allows you to set custom environment variables that will
+be passed to the ansible-playbook process. This is useful for configuring
+Ansible behavior via environment variables.
+
+Common Ansible environment variables include:
+- ANSIBLE_FORCE_COLOR: Enable/disable color output
+- ANSIBLE_HOST_KEY_CHECKING: Disable SSH host key checking
+- ANSIBLE_CONFIG: Path to ansible.cfg file
+- ANSIBLE_VAULT_PASSWORD_FILE: Path to vault password file
+
+@example Set Ansible environment variables
+  par { 'custom-config':
+    playbook    => '/etc/ansible/playbooks/deploy.yml',
+    environment => {
+      'ANSIBLE_FORCE_COLOR'        => 'true',
+      'ANSIBLE_HOST_KEY_CHECKING'  => 'false',
+    },
+  }
+
+##### <a name="-par--limit"></a>`limit`
+
+Limit playbook execution to specific hosts (optional).
+
+This parameter allows you to limit which hosts the playbook runs against.
+This is passed to ansible-playbook using the --limit flag.
+
+The value should be a host pattern following Ansible's host pattern syntax.
+For PAR (which runs against localhost), this is typically 'localhost' but
+can be used with more complex patterns if your playbook targets multiple hosts.
+
+@example Limit to localhost
+  par { 'local-only':
+    playbook => '/etc/ansible/playbooks/setup.yml',
+    limit    => 'localhost',
+  }
+
+@example Multiple host pattern
+  par { 'web-servers':
+    playbook => '/etc/ansible/playbooks/deploy.yml',
+    limit    => 'web*:db*',
+  }
 
 ##### <a name="-par--name"></a>`name`
 
@@ -117,8 +193,167 @@ File.expand_path to resolve symlinks and relative components.
   playbook => 'C:/Ansible/playbooks/setup.yml'
   playbook => 'D:/config/playbook.yml'
 
+##### <a name="-par--playbook_vars"></a>`playbook_vars`
+
+A hash of variables to pass to the Ansible playbook (optional).
+
+This parameter allows you to pass custom variables to your Ansible playbook
+at runtime. The variables are serialized to JSON and passed to ansible-playbook
+using the --extra-vars (-e) flag.
+
+Variable precedence: Extra vars (passed via this parameter) have the highest
+precedence in Ansible and will override variables defined in the playbook,
+inventory, or other sources.
+
+The parameter accepts:
+- Simple key-value pairs (strings, numbers, booleans)
+- Nested hashes for complex data structures
+- Arrays for list values
+- Empty hash {} (no variables passed)
+- nil/undef (no variables passed)
+
+The parameter rejects:
+- Non-hash values (strings, arrays, integers, booleans)
+
+@example Simple variables
+  par { 'deploy-app':
+    playbook      => '/etc/ansible/playbooks/deploy.yml',
+    playbook_vars => {
+      'app_version' => '1.2.3',
+      'environment' => 'production',
+    },
+  }
+
+@example Complex nested variables
+  par { 'configure-database':
+    playbook      => '/etc/ansible/playbooks/database.yml',
+    playbook_vars => {
+      'database' => {
+        'host'     => 'localhost',
+        'port'     => 5432,
+        'name'     => 'myapp',
+        'ssl_mode' => 'require',
+      },
+      'users' => ['admin', 'readonly'],
+    },
+  }
+
+@example No variables (optional)
+  par { 'basic-playbook':
+    playbook => '/etc/ansible/playbooks/setup.yml',
+    # playbook_vars is optional - can be omitted
+  }
+
 ##### <a name="-par--provider"></a>`provider`
 
 The specific backend to use for this `par` resource. You will seldom need to specify this --- Puppet will usually
 discover the appropriate provider for your platform.
+
+##### <a name="-par--skip_tags"></a>`skip_tags`
+
+An array of Ansible tags to skip (optional).
+
+This parameter allows you to skip tasks with specific tags in your
+Ansible playbook. This is passed to ansible-playbook using the --skip-tags
+flag.
+
+Skip tags provide a way to exclude portions of your playbook from execution.
+Tasks, plays, and roles that are tagged with the specified tags will be skipped.
+
+@example Skipping risky operations
+  par { 'safe-deploy':
+    playbook  => '/etc/ansible/playbooks/deploy.yml',
+    skip_tags => ['dangerous', 'slow'],
+  }
+
+##### <a name="-par--start_at_task"></a>`start_at_task`
+
+The name of the task to start execution at (optional).
+
+This parameter allows you to start playbook execution at a specific task
+instead of from the beginning. This is passed to ansible-playbook using
+the --start-at-task flag.
+
+This is useful for resuming playbook execution after a failure or for
+testing specific portions of a playbook.
+
+@example Resume from specific task
+  par { 'resume-deploy':
+    playbook       => '/etc/ansible/playbooks/deploy.yml',
+    start_at_task  => 'Install application',
+  }
+
+##### <a name="-par--tags"></a>`tags`
+
+An array of Ansible tags to execute (optional).
+
+This parameter allows you to run only tasks with specific tags in your
+Ansible playbook. This is passed to ansible-playbook using the --tags (-t)
+flag.
+
+Tags provide a way to selectively execute portions of your playbook. Only
+tasks, plays, and roles that are tagged with the specified tags will run.
+
+@example Running specific tags
+  par { 'partial-deploy':
+    playbook => '/etc/ansible/playbooks/deploy.yml',
+    tags     => ['webserver', 'database'],
+  }
+
+@example Single tag
+  par { 'configure-only':
+    playbook => '/etc/ansible/playbooks/setup.yml',
+    tags     => ['configuration'],
+  }
+
+##### <a name="-par--timeout"></a>`timeout`
+
+Timeout in seconds for playbook execution (optional).
+
+This parameter sets a maximum execution time for the ansible-playbook
+command. If the playbook takes longer than this timeout, execution will
+be terminated.
+
+The value must be a non-negative integer. A value of 0 means no timeout.
+
+@example Set 5 minute timeout
+  par { 'quick-deploy':
+    playbook => '/etc/ansible/playbooks/deploy.yml',
+    timeout  => 300,
+  }
+
+##### <a name="-par--user"></a>`user`
+
+Remote user to use for Ansible connections (optional).
+
+This parameter specifies the user account to use when connecting to remote
+hosts. This is passed to ansible-playbook using the --user (-u) flag.
+
+For PAR (which typically runs against localhost with local connection),
+this may not be necessary, but can be useful for playbooks that connect
+to remote hosts.
+
+@example Specify remote user
+  par { 'remote-deploy':
+    playbook => '/etc/ansible/playbooks/deploy.yml',
+    user     => 'ansible',
+  }
+
+##### <a name="-par--verbose"></a>`verbose`
+
+Valid values: `true`, `false`, `yes`, `no`
+
+Enable verbose output from Ansible (optional).
+
+When set to true, enables verbose mode for ansible-playbook execution
+using the -v flag. This provides more detailed output about what Ansible
+is doing during playbook execution.
+
+This can be useful for debugging or understanding playbook execution flow.
+
+@example Enable verbose output
+  par { 'debug-run':
+    playbook => '/etc/ansible/playbooks/setup.yml',
+    verbose  => true,
+  }
 

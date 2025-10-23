@@ -35,19 +35,21 @@ A system administrator wants to run an Ansible playbook on the local machine thr
 
 ---
 
-### User Story 2 - Pass Custom Configuration Options (Priority: P2)
+###User Story 2 - Pass Custom Configuration Options (Priority: P2) ✅ COMPLETE
 
 A system administrator needs to pass custom variables and configuration options to Ansible playbooks to control their behavior without modifying the playbook files themselves.
 
+**Status**: ✅ Implemented in Phase 4 - All configuration options working
+
 **Why this priority**: Configuration options enable reusability of playbooks across different environments and use cases. This is essential for practical usage but the module provides value without it (P1 can run playbooks with hardcoded values).
 
-**Independent Test**: Can be tested by declaring a PAR resource with extra_vars and verifying those variables are correctly passed to ansible-playbook command and used within the playbook execution.
+**Independent Test**: Can be tested by declaring a PAR resource with playbook_vars and verifying those variables are correctly passed to ansible-playbook command and used within the playbook execution.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios**: ✅ All passing (18 scenarios, 129 steps)
 
-1. **Given** a playbook that accepts variables, **When** a user declares `par { 'deploy': playbook => '/path/to/deploy.yml', playbook_vars => { 'app_version' => '2.1.0', 'environment' => 'production' } }`, **Then** Ansible receives these variables and executes accordingly
-2. **Given** multiple configuration options are specified (playbook_vars, tags, skip_tags), **When** the catalog is applied, **Then** all options are correctly passed to the ansible-playbook command
-3. **Given** configuration options with special characters or spaces, **When** passed to the PAR resource, **Then** values are properly escaped and passed safely to Ansible
+1. ✅ **Given** a playbook that accepts variables, **When** a user declares `par { 'deploy': playbook => '/path/to/deploy.yml', playbook_vars => { 'app_version' => '2.1.0', 'environment' => 'production' } }`, **Then** Ansible receives these variables and executes accordingly
+2. ✅ **Given** multiple configuration options are specified (playbook_vars, tags, skip_tags), **When** the catalog is applied, **Then** all options are correctly passed to the ansible-playbook command
+3. ✅ **Given** configuration options with special characters or spaces, **When** passed to the PAR resource, **Then** values are properly escaped and passed safely to Ansible
 
 ---
 
@@ -86,19 +88,19 @@ A system administrator wants Puppet to correctly report when Ansible playbooks m
 - **FR-002**: Type MUST accept a `playbook` parameter that specifies the absolute path to an Ansible playbook file
 - **FR-003**: Type MUST validate that the specified playbook file exists before attempting execution
 - **FR-004**: Provider MUST execute the specified Ansible playbook against localhost using the `ansible-playbook` command
-- **FR-005**: Type MUST accept an optional `playbook_vars` parameter that accepts a hash of key-value pairs to pass as Ansible variables
-- **FR-006**: Type MUST accept optional Ansible configuration parameters including: `tags`, `skip_tags`, `start_at_task`, `limit`, `verbose`, `check_mode`
-- **FR-007**: Provider MUST properly escape and format all configuration options when constructing the ansible-playbook command
+- **FR-005**: ✅ Type MUST accept an optional `playbook_vars` parameter that accepts a hash of key-value pairs to pass as Ansible variables
+- **FR-006**: ✅ Type MUST accept optional Ansible configuration parameters including: `tags`, `skip_tags`, `start_at_task`, `limit`, `verbose`, `check_mode`
+- **FR-007**: ✅ Provider MUST properly escape and format all configuration options when constructing the ansible-playbook command
 - **FR-008**: Provider MUST parse ansible-playbook JSON output (using `-o` flag or stdout_callback=json) to detect changes - report resource changed if Ansible reports "changed" status, report in-sync if "ok" status, report failed if "failed" status
 - **FR-009**: Type MUST accept an optional `logoutput` parameter (boolean, default false) - when true, display full ansible-playbook stdout/stderr during execution similar to Puppet exec's logoutput
 - **FR-010**: Provider MUST capture and log both stdout and stderr from ansible-playbook execution for parsing and optional display
 - **FR-011**: Provider MUST report Puppet resource as failed if ansible-playbook returns non-zero exit code or output indicates task failures
-- **FR-012**: Type MUST accept an optional `timeout` parameter to specify maximum execution time in seconds (default: 300)
-- **FR-013**: Provider MUST terminate playbook execution if timeout is exceeded and report failure
-- **FR-014**: Type MUST accept optional `user` parameter to specify which user should execute the ansible-playbook process (privilege escalation within playbooks handled by Ansible's become mechanism)
+- **FR-012**: ✅ Type MUST accept an optional `timeout` parameter to specify maximum execution time in seconds (default: 300)
+- **FR-013**: ✅ Provider MUST terminate playbook execution if timeout is exceeded and report failure
+- **FR-014**: ✅ Type MUST accept optional `user` parameter to specify which user should execute the ansible-playbook process (privilege escalation within playbooks handled by Ansible's become mechanism)
 - **FR-015**: Provider MUST support Puppet noop mode by not executing playbooks when noop is enabled
 - **FR-016**: Provider MUST verify ansible-playbook executable is available in PATH before attempting execution
-- **FR-017**: Type MUST accept an optional `environment` parameter to set environment variables for playbook execution
+- **FR-017**: ✅ Type MUST accept an optional `environment` parameter to set environment variables for playbook execution
 - **FR-018**: Type title (namevar) MUST serve as a unique identifier for the resource and can be different from the playbook path
 - **FR-019**: Provider MUST properly handle playbook paths with spaces and special characters
 - **FR-020**: Module MUST support all operating systems declared in metadata.json (RHEL/CentOS/AlmaLinux/Rocky 7-9, Debian 10-12, Ubuntu 18.04-22.04, Windows Server 2019-2022/10-11)

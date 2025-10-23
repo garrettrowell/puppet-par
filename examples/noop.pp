@@ -1,71 +1,59 @@
 # PAR Noop Mode Example
 #
-# This example demonstrates how PAR behaves in Puppet's noop (--noop) mode.
-# When applied with --noop flag, PAR will validate dependencies but NOT
-# execute the Ansible playbook, showing you what would happen.
+# This example demonstrates Puppet's noop mode with PAR resources.
+# In noop mode, PAR will report what would happen without actually
+# executing the Ansible playbook.
 #
 # Requirements:
 # - ansible-playbook must be installed and available in PATH
 # - The playbook file must exist at the specified path
 #
 # Usage:
-#   puppet apply --noop examples/noop.pp
+#   puppet apply --libdir=lib --noop examples/noop.pp
 #
-# In noop mode, PAR will:
-# 1. Check that ansible-playbook is in PATH (fails if missing)
-# 2. Check that playbook file exists (fails if missing)
-# 3. Show "would execute" message without running ansible-playbook
-# 4. Report what would change
-#
-# Compare with:
-#   puppet apply examples/noop.pp  (actually executes playbook)
+# Or test with explicit noop flag per resource:
+#   puppet apply --libdir=lib examples/noop.pp
 
-# Create a playbook that makes a visible change
-file { '/tmp/noop_example_playbook.yml':
+# Create a test playbook
+file { '/tmp/test_playbook.yml':
   ensure  => file,
-  content => stdlib::to_yaml([
-      {
-        'name'         => 'Noop Mode Example Playbook',
-        'hosts'        => 'localhost',
-        'gather_facts' => false,
-        'tasks'        => [
-          {
-            'name'                 => 'Create a timestamp file',
-            'ansible.builtin.copy' => {
-              'content' => "Last run: {{ ansible_date_time.iso8601 }}\n",
-              'dest'    => '/tmp/par_noop_test.txt',
-              'mode'    => '0644',
-            },
-          },
-          {
-            'name'                  => 'Display noop status',
-            'ansible.builtin.debug' => {
-              'msg' => 'This playbook ran at {{ ansible_date_time.iso8601 }}',
-            },
-          },
-        ],
-      },
-  ]),
+  # lint:ignore:140chars lint:ignore:strict_indent
+  content => @(END),
+---
+- name: Test Playbook for Noop
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: This would run in normal mode
+      ansible.builtin.debug:
+        msg: "This playbook would execute normally"
+    
+    - name: This would create a file
+      ansible.builtin.file:
+        path: /tmp/noop_test.txt
+        state: touch
+| END
+  # lint:endignore
 }
 
-# PAR resource that will respect noop mode
-par { 'noop-mode-example':
+# In noop mode, this resource will show what would happen
+# but will not actually execute the playbook
+par { 'noop-example':
   ensure   => present,
-  playbook => '/tmp/noop_example_playbook.yml',
+  playbook => '/tmp/test_playbook.yml',
+  noop     => true, # Explicitly enable noop for this resource
 }
 
-# Expected behavior:
+# Noop mode behavior:
+# - PAR validates the playbook file exists
+# - PAR validates ansible-playbook is available
+# - PAR shows that it would execute the playbook
+# - PAR does NOT actually run ansible-playbook
 #
-# With --noop flag:
-#   Notice: /Stage[main]/Main/File[/tmp/noop_example_playbook.yml]/ensure: current_value 'absent', should be 'file' (noop)
-#   Notice: /Stage[main]/Main/Par[noop-mode-example]/ensure: current_value 'absent', should be 'present' (noop)
-#   Notice: Class[Main]: Would have triggered 'refreshed' from 2 events
+# Expected output in noop mode:
+# Notice: /Stage[main]/Main/Par[noop-example]/ensure: created (noop)
 #
-# Without --noop flag:
-#   Notice: /Stage[main]/Main/File[/tmp/noop_example_playbook.yml]/ensure: defined content as '{sha256}...'
-#   Notice: /Stage[main]/Main/Par[noop-mode-example]/ensure: created
-#   (Ansible playbook actually executes, /tmp/par_noop_test.txt is created)
-#
-# Verification after normal run:
-#   cat /tmp/par_noop_test.txt
-#   (Shows timestamp of last execution)
+# This is useful for:
+# - Testing Puppet manifests safely
+# - Previewing changes before applying
+# - CI/CD validation without side effects

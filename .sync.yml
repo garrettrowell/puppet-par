@@ -14,3 +14,11 @@ Gemfile:
       - gem: 'aruba'
         version: '~> 2.0'
 
+spec/spec_helper.rb:
+  strict_variables: true
+  strict_level: ':error'
+
+Rakefile:
+  requires:
+    - require: 'par/rake_tasks'
+      conditional: "$LOAD_PATH.unshift(File.expand_path('lib', __dir__)) && File.exist?(File.join(__dir__, 'lib/par/rake_tasks.rb'))"

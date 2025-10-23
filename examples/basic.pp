@@ -8,35 +8,30 @@
 # - The playbook file must exist at the specified path
 #
 # Usage:
-#   puppet apply examples/basic.pp
+#   puppet apply --libdir=lib examples/basic.pp
 
 # Ensure the playbook file exists first
 # PAR will autorequire this File resource automatically
 file { '/tmp/example_playbook.yml':
   ensure  => file,
-  content => stdlib::to_yaml([
-      {
-        'name'         => 'Example Playbook',
-        'hosts'        => 'localhost',
-        'gather_facts' => false,
-        'tasks'        => [
-          {
-            'name'                 => 'Create test file',
-            'ansible.builtin.file' => {
-              'path'  => '/tmp/par_test.txt',
-              'state' => 'touch',
-              'mode'  => '0644',
-            },
-          },
-          {
-            'name'                  => 'Display message',
-            'ansible.builtin.debug' => {
-              'msg' => 'PAR successfully executed this playbook!',
-            },
-          },
-        ],
-      },
-  ]),
+  # lint:ignore:140chars lint:ignore:strict_indent
+  content => @(END),
+---
+- name: Example Playbook
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Create test file
+      ansible.builtin.file:
+        path: /tmp/par_test.txt
+        state: touch
+        mode: '0644'
+    
+    - name: Display message
+      ansible.builtin.debug:
+        msg: "PAR successfully executed this playbook!"
+| END
+  # lint:endignore
 }
 
 # Execute the Ansible playbook against localhost

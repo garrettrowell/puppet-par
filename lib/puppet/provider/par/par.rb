@@ -102,12 +102,24 @@ Puppet::Type.type(:par).provide(:par) do
   #   against localhost without requiring inventory files or SSH access.
   #
   #   The command structure is:
-  #     ansible-playbook -i localhost, --connection=local <playbook_path>
+  #     ansible-playbook [options] -i localhost, --connection=local <playbook_path>
   #
   #   Key arguments:
   #   - `-i localhost,` - Uses localhost as the inventory (comma is required)
   #   - `--connection=local` - Uses local connection instead of SSH
   #   - playbook path is always the last argument
+  #   - Configuration options are inserted before the playbook path
+  #
+  #   Supported options (from resource parameters):
+  #   - playbook_vars: Serialized to JSON and passed via -e
+  #   - tags: Comma-separated list passed via --tags
+  #   - skip_tags: Comma-separated list passed via --skip-tags
+  #   - start_at_task: Task name passed via --start-at-task
+  #   - limit: Host pattern passed via --limit
+  #   - verbose: Adds -v flag if true
+  #   - check_mode: Adds --check flag if true
+  #   - user: Username passed via --user
+  #   - timeout: Timeout in seconds passed via --timeout
   #
   #   Returning an array (rather than a string) ensures proper argument separation
   #   and automatic shell escaping by Puppet::Util::Execution, which safely handles
@@ -115,25 +127,85 @@ Puppet::Type.type(:par).provide(:par) do
   #
   #   @return [Array<String>] Command array suitable for Puppet::Util::Execution.execute
   #
-  #   @example
+  #   @example Basic command
   #     provider.build_command
   #     #=> ['ansible-playbook', '-i', 'localhost,', '--connection=local', '/tmp/playbook.yml']
   #
-  #   @example With spaces in path
-  #     # Playbook: '/path/with spaces/playbook.yml'
+  #   @example With variables
+  #     # playbook_vars: { 'version' => '1.0', 'env' => 'prod' }
   #     provider.build_command
-  #     #=> ['ansible-playbook', '-i', 'localhost,', '--connection=local', '/path/with spaces/playbook.yml']
+  #     #=> ['ansible-playbook', '-i', 'localhost,', '--connection=local',
+  #          '-e', '{"version":"1.0","env":"prod"}', '/tmp/playbook.yml']
+  #
+  #   @example With multiple options
+  #     # tags: ['deploy'], verbose: true, check_mode: true
+  #     provider.build_command
+  #     #=> ['ansible-playbook', '-i', 'localhost,', '--connection=local',
+  #          '--tags', 'deploy', '-v', '--check', '/tmp/playbook.yml']
   #
   def build_command
-    playbook_path = resource[:playbook]
+    require 'json'
 
-    [
+    playbook_path = resource[:playbook]
+    cmd = [
       'ansible-playbook',
       '-i',
       'localhost,',
       '--connection=local',
-      playbook_path,
     ]
+
+    # Add playbook variables as JSON via -e flag
+    if resource[:playbook_vars] && !resource[:playbook_vars].empty?
+      cmd << '-e'
+      cmd << JSON.generate(resource[:playbook_vars])
+    end
+
+    # Add tags filter
+    if resource[:tags] && !resource[:tags].empty?
+      cmd << '--tags'
+      cmd << resource[:tags].join(',')
+    end
+
+    # Add skip_tags filter
+    if resource[:skip_tags] && !resource[:skip_tags].empty?
+      cmd << '--skip-tags'
+      cmd << resource[:skip_tags].join(',')
+    end
+
+    # Add start-at-task option
+    if resource[:start_at_task]
+      cmd << '--start-at-task'
+      cmd << resource[:start_at_task]
+    end
+
+    # Add limit option
+    if resource[:limit]
+      cmd << '--limit'
+      cmd << resource[:limit]
+    end
+
+    # Add verbose flag
+    cmd << '-v' if resource[:verbose] == true
+
+    # Add check mode flag
+    cmd << '--check' if resource[:check_mode] == true
+
+    # Add user option
+    if resource[:user]
+      cmd << '--user'
+      cmd << resource[:user]
+    end
+
+    # Add timeout option
+    if resource[:timeout]
+      cmd << '--timeout'
+      cmd << resource[:timeout].to_s
+    end
+
+    # Playbook path must be last
+    cmd << playbook_path
+
+    cmd
   end
 
   # @!method create

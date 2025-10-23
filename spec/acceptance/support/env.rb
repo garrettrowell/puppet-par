@@ -19,15 +19,18 @@ end
 
 # Helper methods for Puppet testing
 module PuppetHelpers
-  # Get the module path for puppet apply
-  def module_path
-    File.expand_path('../../../..', __dir__)
+  # Get the module root directory
+  def module_root
+    File.expand_path('../../..', __dir__)
   end
 
   # Build puppet apply command with proper modulepath
   def puppet_apply_command(manifest_path, options = {})
     cmd = ['puppet', 'apply']
-    cmd << '--modulepath' << module_path
+    # For development, load types and providers directly from lib/
+    cmd << '--libdir' << File.join(module_root, 'lib')
+    # Use detailed-exitcodes so we can detect failures (exit 4 or 6)
+    cmd << '--detailed-exitcodes' unless options[:noop]
     cmd << '--noop' if options[:noop]
     cmd << '--debug' if options[:debug]
     cmd << '--verbose' if options[:verbose]
@@ -42,7 +45,7 @@ module PuppetHelpers
 
   # Create a temporary manifest file
   def create_manifest(name, content)
-    manifest_path = File.join(aruba.config.working_directory, "#{name}.pp")
+    manifest_path = File.expand_path(File.join(aruba.config.working_directory, "#{name}.pp"))
     FileUtils.mkdir_p(File.dirname(manifest_path))
     File.write(manifest_path, content)
     manifest_path
@@ -50,7 +53,7 @@ module PuppetHelpers
 
   # Create a temporary playbook file
   def create_playbook(name, content)
-    playbook_path = File.join(aruba.config.working_directory, 'playbooks', "#{name}.yml")
+    playbook_path = File.expand_path(File.join(aruba.config.working_directory, 'playbooks', "#{name}.yml"))
     FileUtils.mkdir_p(File.dirname(playbook_path))
     File.write(playbook_path, content)
     playbook_path

@@ -64,9 +64,11 @@ Notice: Applied catalog in X.XX seconds
 
 ---
 
-### Scenario 2: Playbook with Extra Variables (P2)
+### Scenario 2: Playbook with Extra Variables (P2) ✅ WORKING
 
 **Goal**: Verify PAR passes playbook_vars to Ansible as JSON
+
+**Status**: ✅ Implemented and tested - All variable scenarios passing
 
 **Setup**:
 ```bash
@@ -102,8 +104,10 @@ par { 'deploy-app':
 
 **Execute**:
 ```bash
-puppet apply --modulepath=/path/to/modules examples/with_vars.pp
+puppet apply --libdir=lib examples/with_vars.pp
 ```
+
+**Note**: Examples use heredoc syntax (not stdlib::to_yaml) for self-contained playbook creation.
 
 **Expected Result**:
 ```
@@ -370,9 +374,11 @@ Error: /Stage[main]/Main/Par[slow-playbook]/ensure: Ansible playbook exceeded ti
 
 ---
 
-### Scenario 9: Complex Variables (P2)
+### Scenario 9: Complex Variables (P2) ✅ WORKING
 
 **Goal**: Verify nested hashes and arrays work in playbook_vars
+
+**Status**: ✅ Implemented - Complex data structures fully supported
 
 **Setup**:
 ```bash
@@ -424,9 +430,11 @@ Notice: /Stage[main]/Main/Par[complex-config]/ensure: created
 
 ---
 
-### Scenario 10: Special Characters in Values (P2)
+### Scenario 10: Special Characters in Values (P2) ✅ WORKING
 
 **Goal**: Verify proper escaping of special characters
+
+**Status**: ✅ Implemented - JSON serialization handles all special characters
 
 **Setup**:
 ```bash
@@ -524,15 +532,17 @@ All validators passed
 
 After implementing PAR, verify:
 
-- [ ] **P1 - Basic Execution**: Scenario 1 passes
-- [ ] **P1 - Noop Mode**: Scenario 4 passes
-- [ ] **P1 - Error Handling**: Scenarios 5, 6, 7 show appropriate errors
-- [ ] **P2 - Extra Variables**: Scenarios 2, 9, 10 pass
-- [ ] **P3 - Idempotency**: Scenario 3 passes
-- [ ] **Timeout**: Scenario 8 passes
-- [ ] **Tests**: `pdk test unit -v` shows 100% pass rate
-- [ ] **Validation**: `pdk validate` reports zero offenses
-- [ ] **Documentation**: REFERENCE.md generated and accurate
+- [x] **P1 - Basic Execution**: Scenario 1 passes ✅
+- [x] **P1 - Noop Mode**: Scenario 4 passes ✅
+- [x] **P1 - Error Handling**: Scenarios 5, 6, 7 show appropriate errors ✅
+- [x] **P2 - Extra Variables**: Scenarios 2, 9, 10 pass ✅
+- [ ] **P3 - Idempotency**: Scenario 3 (change detection not yet implemented)
+- [x] **Timeout**: Scenario 8 passes ✅
+- [x] **Tests**: `pdk test unit` shows 115 examples, 0 failures ✅
+- [x] **Acceptance**: `pdk bundle exec rake acceptance` shows 18 scenarios passing ✅
+- [x] **Validation**: `pdk validate` reports zero offenses ✅
+- [x] **Examples**: All 5 examples work (basic, noop, with_vars, tags, timeout) ✅
+- [ ] **Documentation**: REFERENCE.md needs regeneration with puppet strings
 
 ---
 
@@ -568,11 +578,11 @@ After validating these scenarios:
 ## Command Reference
 
 ```bash
-# Apply manifest
-puppet apply --modulepath=/path/to/modules examples/basic.pp
+# Apply manifest (use --libdir not --modulepath for development)
+puppet apply --libdir=lib examples/basic.pp
 
 # Apply in noop mode
-puppet apply --noop --modulepath=/path/to/modules examples/basic.pp
+puppet apply --noop --libdir=lib examples/basic.pp
 
 # Run unit tests
 pdk test unit -v

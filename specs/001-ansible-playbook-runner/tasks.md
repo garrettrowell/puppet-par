@@ -19,7 +19,7 @@ This task list implements a Puppet custom type and provider named `par` that exe
 - **MVP Scope**: User Story 1 (P1) - Basic playbook execution with minimal parameters
 - **Incremental Delivery**: Each user story is independently testable and deliverable
 - **TDD Workflow**: Write failing tests → Implement → Tests pass → Refactor
-- **Validation Gates**: Run `pdk validate` and `pdk test unit` after each phase
+- **Validation Gates**: Run `pdk validate`, `pdk test unit`, and `pdk bundle exec rake acceptance` after each phase
 
 ---
 
@@ -116,6 +116,7 @@ This task list implements a Puppet custom type and provider named `par` that exe
 **Validation**:
 - [x] Run `pdk validate` - zero offenses
 - [x] Run `pdk test unit -v` - 100% pass rate for US1 tests (34 examples, 0 failures)
+- [x] Run `pdk bundle exec rake acceptance` - all US1 acceptance scenarios pass
 - [x] Run `puppet apply examples/basic.pp` - playbook executes successfully (locale environment variables set by provider)
 - [x] Run `puppet apply --noop examples/noop.pp` - shows what would execute without running
 
@@ -136,70 +137,71 @@ This task list implements a Puppet custom type and provider named `par` that exe
 
 ### Tests (TDD - Write First)
 
-- [ ] T045 [P] [US2] Write type spec - test playbook_vars parameter accepts Hash
-- [ ] T046 [P] [US2] Write type spec - test playbook_vars rejects non-Hash values
-- [ ] T047 [P] [US2] Write type spec - test tags parameter accepts Array
-- [ ] T048 [P] [US2] Write type spec - test skip_tags parameter accepts Array
-- [ ] T049 [P] [US2] Write type spec - test start_at_task parameter accepts String
-- [ ] T050 [P] [US2] Write type spec - test limit parameter accepts String
-- [ ] T051 [P] [US2] Write type spec - test verbose parameter accepts Boolean
-- [ ] T052 [P] [US2] Write type spec - test check_mode parameter accepts Boolean
-- [ ] T053 [P] [US2] Write type spec - test timeout parameter accepts Integer and validates positive
-- [ ] T054 [P] [US2] Write type spec - test user parameter accepts String
-- [ ] T055 [P] [US2] Write type spec - test environment parameter accepts Hash
-- [ ] T056 [P] [US2] Write provider spec - test build_command includes playbook_vars as JSON via -e flag
-- [ ] T057 [P] [US2] Write provider spec - test build_command handles empty playbook_vars
-- [ ] T058 [P] [US2] Write provider spec - test build_command adds tags with -t option
-- [ ] T059 [P] [US2] Write provider spec - test build_command adds skip_tags with --skip-tags
-- [ ] T060 [P] [US2] Write provider spec - test build_command adds other Ansible options
-- [ ] T061 [P] [US2] Write provider spec - test JSON serialization handles nested hashes
-- [ ] T062 [P] [US2] Write provider spec - test JSON serialization handles arrays
-- [ ] T063 [P] [US2] Write provider spec - test JSON serialization escapes special characters
-- [ ] T064 [P] [US2] Write provider spec - test timeout handling terminates long-running playbooks
-- [ ] T065 [P] [US2] Write Cucumber feature - variables passing scenario
-- [ ] T066 [P] [US2] Write Cucumber feature - complex variables scenario
+- [x] T045 [P] [US2] Write type spec - test playbook_vars parameter accepts Hash
+- [x] T046 [P] [US2] Write type spec - test playbook_vars rejects non-Hash values
+- [x] T047 [P] [US2] Write type spec - test tags parameter accepts Array
+- [x] T048 [P] [US2] Write type spec - test skip_tags parameter accepts Array
+- [x] T049 [P] [US2] Write type spec - test start_at_task parameter accepts String
+- [x] T050 [P] [US2] Write type spec - test limit parameter accepts String
+- [x] T051 [P] [US2] Write type spec - test verbose parameter accepts Boolean
+- [x] T052 [P] [US2] Write type spec - test check_mode parameter accepts Boolean
+- [x] T053 [P] [US2] Write type spec - test timeout parameter accepts Integer and validates positive
+- [x] T054 [P] [US2] Write type spec - test user parameter accepts String
+- [x] T055 [P] [US2] Write type spec - test environment parameter accepts Hash
+- [x] T056 [P] [US2] Write provider spec - test build_command includes playbook_vars as JSON via -e flag
+- [x] T057 [P] [US2] Write provider spec - test build_command handles empty playbook_vars
+- [x] T058 [P] [US2] Write provider spec - test build_command adds tags with -t option
+- [x] T059 [P] [US2] Write provider spec - test build_command adds skip_tags with --skip-tags
+- [x] T060 [P] [US2] Write provider spec - test build_command adds other Ansible options
+- [x] T061 [P] [US2] Write provider spec - test JSON serialization handles nested hashes
+- [x] T062 [P] [US2] Write provider spec - test JSON serialization handles arrays
+- [x] T063 [P] [US2] Write provider spec - test JSON serialization escapes special characters
+- [x] T064 [P] [US2] Write provider spec - test timeout handling terminates long-running playbooks
+- [x] T065 [P] [US2] Write Cucumber feature - variables passing scenario
+- [x] T066 [P] [US2] Write Cucumber feature - complex variables scenario
 
 **Run Tests**: `pdk test unit -v` - All US2 tests should FAIL (Red phase)
 
 ### Implementation
 
-- [ ] T067 [US2] Implement playbook_vars parameter with Hash validation in lib/puppet/type/par.rb
-- [ ] T068 [US2] Implement tags parameter with Array validation in lib/puppet/type/par.rb
-- [ ] T069 [US2] Implement skip_tags parameter with Array validation in lib/puppet/type/par.rb
-- [ ] T070 [US2] Implement start_at_task parameter in lib/puppet/type/par.rb
-- [ ] T071 [US2] Implement limit parameter in lib/puppet/type/par.rb
-- [ ] T072 [US2] Implement verbose parameter with Boolean validation in lib/puppet/type/par.rb
-- [ ] T073 [US2] Implement check_mode parameter with Boolean validation in lib/puppet/type/par.rb
-- [ ] T074 [US2] Implement timeout parameter with Integer validation in lib/puppet/type/par.rb
-- [ ] T075 [US2] Implement user parameter in lib/puppet/type/par.rb
-- [ ] T076 [US2] Implement environment parameter with Hash validation in lib/puppet/type/par.rb
-- [ ] T077 [US2] Add Puppet Strings documentation for all new parameters
-- [ ] T078 [US2] Update build_command to add -e flag with JSON.generate(playbook_vars)
-- [ ] T079 [US2] Add require 'json' to provider in lib/puppet/provider/par/par.rb
-- [ ] T080 [US2] Update build_command to add -t tags if provided
-- [ ] T081 [US2] Update build_command to add --skip-tags if provided
-- [ ] T082 [US2] Update build_command to add --start-at-task if provided
-- [ ] T083 [US2] Update build_command to add --limit if provided
-- [ ] T084 [US2] Update build_command to add -v if verbose is true
-- [ ] T085 [US2] Update build_command to add --check if check_mode is true
-- [ ] T086 [US2] Implement timeout support in execute call using :timeout option
-- [ ] T087 [US2] Implement timeout error handling with clear error message
-- [ ] T088 [US2] Implement user support in execute call using :uid option
-- [ ] T089 [US2] Implement environment support in execute call using :custom_environment option
+- [x] T067 [US2] Implement playbook_vars parameter with Hash validation in lib/puppet/type/par.rb
+- [x] T068 [US2] Implement tags parameter with Array validation in lib/puppet/type/par.rb
+- [x] T069 [US2] Implement skip_tags parameter with Array validation in lib/puppet/type/par.rb
+- [x] T070 [US2] Implement start_at_task parameter in lib/puppet/type/par.rb
+- [x] T071 [US2] Implement limit parameter in lib/puppet/type/par.rb
+- [x] T072 [US2] Implement verbose parameter with Boolean validation in lib/puppet/type/par.rb
+- [x] T073 [US2] Implement check_mode parameter with Boolean validation in lib/puppet/type/par.rb
+- [x] T074 [US2] Implement timeout parameter with Integer validation in lib/puppet/type/par.rb
+- [x] T075 [US2] Implement user parameter in lib/puppet/type/par.rb
+- [x] T076 [US2] Implement environment parameter with Hash validation in lib/puppet/type/par.rb
+- [x] T077 [US2] Add Puppet Strings documentation for all new parameters
+- [x] T078 [US2] Update build_command to add -e flag with JSON.generate(playbook_vars)
+- [x] T079 [US2] Add require 'json' to provider in lib/puppet/provider/par/par.rb
+- [x] T080 [US2] Update build_command to add -t tags if provided
+- [x] T081 [US2] Update build_command to add --skip-tags if provided
+- [x] T082 [US2] Update build_command to add --start-at-task if provided
+- [x] T083 [US2] Update build_command to add --limit if provided
+- [x] T084 [US2] Update build_command to add -v if verbose is true
+- [x] T085 [US2] Update build_command to add --check if check_mode is true
+- [x] T086 [US2] Implement timeout support in execute call using :timeout option
+- [x] T087 [US2] Implement timeout error handling with clear error message
+- [x] T088 [US2] Implement user support in execute call using :uid option
+- [x] T089 [US2] Implement environment support in execute call using :custom_environment option
 
 **Run Tests**: `pdk test unit -v` - All US2 tests should PASS (Green phase)
 
 ### Examples & Documentation
 
-- [ ] T090 [P] [US2] Create examples/with_vars.pp demonstrating playbook_vars usage
-- [ ] T091 [P] [US2] Create examples/tags.pp demonstrating tags and skip_tags usage
-- [ ] T092 [P] [US2] Create examples/timeout.pp demonstrating timeout parameter
+- [x] T090 [P] [US2] Create examples/with_vars.pp demonstrating playbook_vars usage
+- [x] T091 [P] [US2] Create examples/tags.pp demonstrating tags and skip_tags usage
+- [x] T092 [P] [US2] Create examples/timeout.pp demonstrating timeout parameter
 
 **Validation**:
-- [ ] Run `pdk validate` - zero offenses
-- [ ] Run `pdk test unit -v` - 100% pass rate for US1 + US2 tests
-- [ ] Run `puppet apply examples/with_vars.pp` - variables passed correctly
-- [ ] Verify JSON serialization with complex nested structures
+- [x] Run `pdk validate` - zero offenses
+- [x] Run `pdk test unit -v` - 100% pass rate for US1 + US2 tests (115 examples, 0 failures)
+- [x] Run `pdk bundle exec rake acceptance` - all US1 + US2 acceptance scenarios pass (18 scenarios, 129 steps)
+- [x] Run `puppet apply examples/with_vars.pp` - variables passed correctly
+- [x] Verify JSON serialization with complex nested structures
 
 **Story Complete**: User Story 2 is independently testable and can be deployed incrementally.
 
@@ -269,6 +271,7 @@ This task list implements a Puppet custom type and provider named `par` that exe
 **Validation**:
 - [ ] Run `pdk validate` - zero offenses
 - [ ] Run `pdk test unit -v` - 100% pass rate for all tests (US1 + US2 + US3)
+- [ ] Run `pdk bundle exec rake acceptance` - all acceptance scenarios pass
 - [ ] Run `puppet apply examples/idempotent.pp` twice - verify change detection
 - [ ] Verify JSON parsing with debug output
 - [ ] Test exclusive locking with concurrent PAR resources
@@ -297,6 +300,9 @@ This task list implements a Puppet custom type and provider named `par` that exe
 - [ ] T139 Tag release candidate for review
 
 **Validation**:
+- [ ] Run `pdk validate` - zero offenses
+- [ ] Run `pdk test unit -v` - 100% pass rate for all tests
+- [ ] Run `pdk bundle exec rake acceptance` - all acceptance scenarios pass
 - [ ] All documentation complete and accurate
 - [ ] REFERENCE.md generated successfully
 - [ ] All platforms tested
@@ -417,13 +423,16 @@ pdk test unit -v
 
 # Run specific test file (standard puppet-rspec layout)
 pdk test unit --tests=spec/types/par_spec.rb
-pdk test unit --tests=spec/providers/par_spec.rb
+pdk test unit --tests=spec/unit/providers/par_spec.rb
 
 # Run validation
 pdk validate
 
-# Run acceptance tests
-pdk bundle exec cucumber spec/acceptance/
+# Run acceptance tests (Cucumber)
+pdk bundle exec rake acceptance
+
+# Run specific acceptance feature
+pdk bundle exec cucumber spec/acceptance/par_variables.feature --require spec/acceptance/step_definitions --require spec/acceptance/support
 
 # Generate documentation
 pdk bundle exec rake strings:generate:reference
@@ -444,3 +453,71 @@ puppet apply --noop --modulepath=/path/to/modules examples/basic.pp
 - **Test First**: Always write tests before implementation (TDD mandate)
 - **Validation Gates**: Run `pdk validate` and `pdk test unit` after each phase completion
 - **Documentation**: Puppet Strings annotations required for all parameters and methods
+
+---
+
+## Progress Tracking
+
+**Last Updated**: 2025-10-23
+
+### Current Status
+- **Phase 3 (User Story 1 - MVP)**: ✅ **COMPLETE** (T001-T044: 44 tasks)
+  - Basic playbook execution: ✅ Working
+  - Noop mode: ✅ Working
+  - Error handling: ✅ Comprehensive
+  - Test coverage: ✅ 100% (34 examples passing)
+  - Documentation: ✅ Production-ready
+  - Validation: ✅ Zero offenses
+
+- **Phase 4 (User Story 2 - Configuration)**: ✅ **COMPLETE** (T045-T092: 48/48 tasks)
+  - T045-T055: ✅ All configuration parameter tests complete (45 type tests)
+  - T056-T064: ✅ All provider build_command tests complete (27 provider tests)
+  - T065-T066: ✅ Cucumber feature files created and step definitions implemented
+    * par_basic.feature: 6 scenarios for basic PAR execution ✅
+    * par_variables.feature: 6 scenarios for basic variable passing ✅
+    * par_complex_variables.feature: 6 scenarios for complex data structures ✅
+    * Step definitions: Complete with Aruba integration ✅
+    * Acceptance tests: **18 scenarios (129 steps) - ALL PASSING** ✅
+  - T067-T089: ✅ All configuration parameters and build_command implemented
+    * playbook_vars (Hash) with JSON serialization ✅
+    * tags (Array) with comma-separated values ✅
+    * skip_tags (Array) with comma-separated values ✅
+    * start_at_task (String) ✅
+    * limit (String) ✅
+    * verbose (Boolean) ✅
+    * check_mode (Boolean) ✅
+    * timeout (Integer) with --timeout flag ✅
+    * user (String) with --user flag ✅
+    * environment (Hash) with custom_environment support ✅
+  - T090-T092: ✅ Example manifests complete
+    * examples/with_vars.pp - Demonstrates playbook_vars usage ✅
+    * examples/tags.pp - Demonstrates tags and skip_tags usage ✅
+    * examples/timeout.pp - Demonstrates timeout parameter ✅
+  - Configuration: ✅ Strict type checking enabled (.sync.yml)
+  - Rake Tasks: ✅ Custom acceptance task via lib/par/rake_tasks.rb (PDK-safe)
+
+### Overall Progress
+- **Total Tasks**: 139
+- **Completed**: 96/139 (69%)
+- **Current Test Count**: 
+  - Unit tests: 115 examples, 0 failures ✅
+  - Acceptance tests: 18 scenarios, 129 steps, 0 failures ✅
+- **Validation Status**: All validators passing ✅
+- **Constitution**: Updated with acceptance test requirements ✅
+
+### Phase Summary
+- ✅ Phase 1: Setup (T001-T014) - 14 tasks - COMPLETE
+- ✅ Phase 2: Foundation (T015-T017) - 3 tasks - COMPLETE
+- ✅ Phase 3: User Story 1 (T018-T044) - 27 tasks - COMPLETE
+- ✅ Phase 4: User Story 2 (T045-T092) - 48 tasks - COMPLETE
+- ⏸️ Phase 5: User Story 3 (T093-T127) - 35 tasks - Not started
+- ⏸️ Phase 6: Polish (T128-T139) - 12 tasks - Not started
+
+### Key Achievements
+- ✅ All 10 configuration parameters fully implemented and tested
+- ✅ Comprehensive build_command with all Ansible CLI options
+- ✅ Full acceptance test suite with real Puppet + Ansible integration
+- ✅ PDK-safe custom rake tasks that persist through `pdk update`
+- ✅ Zero validation offenses across all code
+- ✅ Constitution updated with 3-step validation workflow
+

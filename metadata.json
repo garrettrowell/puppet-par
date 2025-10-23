@@ -2,15 +2,10 @@
   "name": "garrettrowell-par",
   "version": "0.1.0",
   "author": "Garrett Rowell",
-  "summary": "",
+  "summary": "Execute Ansible playbooks through Puppet with comprehensive configuration options",
   "license": "MIT",
-  "source": "",
-  "dependencies": [
-    {
-      "name": "puppetlabs/stdlib",
-      "version_requirement": ">= 4.13.1 < 10.0.0"
-    }
-  ],
+  "source": "https://github.com/garrettrowell/puppet-par",
+  "dependencies": [],
   "operatingsystem_support": [
     {
       "operatingsystem": "CentOS",

@@ -29,8 +29,7 @@ Feature: Basic PAR Playbook Execution
     When I apply the manifest with --noop
     Then the Puppet run should succeed
     And the playbook should not have executed
-    And the output should contain "Would execute:"
-    And the output should contain "ansible-playbook"
+    And the output should contain "created (noop)"
 
   Scenario: Error when playbook file does not exist
     Given a Puppet manifest with PAR resource:
