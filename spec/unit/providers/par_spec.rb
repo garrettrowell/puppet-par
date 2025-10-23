@@ -670,6 +670,49 @@ describe Puppet::Type.type(:par).provider(:par) do
         provider.parse_json_output('not valid json')
       }.to raise_error(JSON::ParserError)
     end
+
+    it 'handles Ansible warnings with Jinja2 templates before JSON' do
+      output_with_warnings = <<~OUTPUT
+        [WARNING]: conditional statements should not include jinja2 templating
+        delimiters such as {{ }} or {% %}. Found: {{ ansible_facts['distribution'] |
+        lower in nginx_distributions.keys() | list }}
+        {
+          "plays": [],
+          "stats": {
+            "localhost": {
+              "ok": 3,
+              "changed": 1,
+              "failed": 0
+            }
+          }
+        }
+      OUTPUT
+
+      stats = provider.parse_json_output(output_with_warnings)
+      expect(stats[:changed]).to eq(1)
+      expect(stats[:ok]).to eq(3)
+      expect(stats[:failed]).to eq(0)
+    end
+
+    it 'handles multiple warnings with curly braces before JSON' do
+      output_with_multiple_warnings = <<~OUTPUT
+        [WARNING]: Found: {{ ansible_facts['os_family'] }}
+        [WARNING]: Found: {% if condition %}
+        [WARNING]: Found: {{ variable | filter }}
+        {
+          "stats": {
+            "localhost": {
+              "ok": 5,
+              "changed": 2,
+              "failed": 0
+            }
+          }
+        }
+      OUTPUT
+
+      stats = provider.parse_json_output(output_with_multiple_warnings)
+      expect(stats[:changed]).to eq(2)
+    end
   end
 
   # T099-T101: Test change detection in create method

@@ -339,17 +339,28 @@ Puppet::Type.type(:par).provide(:par) do
   def parse_json_output(output)
     require 'json'
 
-    # Ansible may output warnings before the JSON
-    # Extract only the JSON portion (starts with '{' and ends with '}')
-    json_start = output.index('{')
-    json_end = output.rindex('}')
+    # Ansible may output warnings before the JSON that contain curly braces
+    # (e.g., Jinja2 template syntax: {{ variable }})
+    # Look for the JSON object that contains the expected structure
+    # The JSON output starts with a line containing only "{"
+    lines = output.lines
+    json_start_line = lines.index { |line| line.strip == '{' }
 
-    if json_start && json_end && json_end >= json_start
-      json_content = output[json_start..json_end]
+    if json_start_line
+      # Found the JSON start, extract from there to the end
+      json_content = lines[json_start_line..].join
       data = JSON.parse(json_content)
     else
-      # If we can't find JSON markers, try parsing the whole thing
-      data = JSON.parse(output)
+      # Fallback: try to find first standalone { on its own line or after newline
+      # This handles cases where JSON might not be perfectly formatted
+      json_start_idx = output.index(%r{\n\{})
+      if json_start_idx
+        json_content = output[json_start_idx + 1..]
+        data = JSON.parse(json_content)
+      else
+        # Last resort: try parsing the whole output
+        data = JSON.parse(output)
+      end
     end
 
     # Extract stats for localhost

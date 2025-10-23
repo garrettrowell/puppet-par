@@ -74,7 +74,7 @@ end
 Then('the playbook should have executed') do
   # Check that the playbook was executed successfully
   # With JSON output format, we look for "plays" or "stats" or the success notice
-  expect(last_command_started.output).to match(/plays|stats|Ansible playbook execution/)
+  expect(last_command_started.output).to match(%r{plays|stats|Ansible playbook execution})
 end
 
 Then('the playbook should not have executed') do
@@ -85,7 +85,7 @@ end
 Then('both playbooks should have executed') do
   # Check for evidence of multiple playbook executions
   # With JSON output, look for multiple "plays" or "stats" or success messages
-  expect(last_command_started.output).to match(/plays|stats|Ansible playbook execution/)
+  expect(last_command_started.output).to match(%r{plays|stats|Ansible playbook execution})
 end
 
 # Idempotency test steps
@@ -109,7 +109,7 @@ end
 When('I update the playbook content to {string}') do |new_content|
   # Read the current playbook, update the content field
   playbook_content = File.read(@playbook_path)
-  updated_content = playbook_content.gsub(/content:.*$/, "content: \"#{new_content}\"")
+  updated_content = playbook_content.gsub(%r{content:.*$}, "content: \"#{new_content}\"")
   File.write(@playbook_path, updated_content)
 end
 
