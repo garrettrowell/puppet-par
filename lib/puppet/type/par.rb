@@ -339,7 +339,7 @@ Puppet::Type.newtype(:par) do
     end
   end
 
-  newparam(:verbose, boolean: true, parent: Puppet::Parameter::Boolean) do
+  newparam(:verbose, boolean: true) do
     desc <<~DESC
       Enable verbose output from Ansible (optional).
 
@@ -355,9 +355,11 @@ Puppet::Type.newtype(:par) do
           verbose  => true,
         }
     DESC
+
+    newvalues(:true, :false)
   end
 
-  newparam(:check_mode, boolean: true, parent: Puppet::Parameter::Boolean) do
+  newparam(:check_mode, boolean: true) do
     desc <<~DESC
       Run Ansible in check mode (dry-run) (optional).
 
@@ -375,6 +377,8 @@ Puppet::Type.newtype(:par) do
           check_mode => true,
         }
     DESC
+
+    newvalues(:true, :false)
   end
 
   newparam(:timeout) do

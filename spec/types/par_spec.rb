@@ -389,7 +389,7 @@ describe Puppet::Type.type(:par) do
         playbook: valid_playbook,
         verbose: true,
       )
-      expect(resource[:verbose]).to eq(true)
+      expect(resource[:verbose]).to eq(:true)
     end
 
     it 'accepts false' do
@@ -398,7 +398,7 @@ describe Puppet::Type.type(:par) do
         playbook: valid_playbook,
         verbose: false,
       )
-      expect(resource[:verbose]).to eq(false)
+      expect(resource[:verbose]).to eq(:false)
     end
 
     it 'is optional' do
@@ -415,7 +415,7 @@ describe Puppet::Type.type(:par) do
         playbook: valid_playbook,
         verbose: 'true',
       )
-      expect(resource[:verbose]).to eq(true)
+      expect(resource[:verbose]).to eq(:true)
     end
 
     it 'accepts string "false"' do
@@ -424,7 +424,7 @@ describe Puppet::Type.type(:par) do
         playbook: valid_playbook,
         verbose: 'false',
       )
-      expect(resource[:verbose]).to eq(false)
+      expect(resource[:verbose]).to eq(:false)
     end
   end
 
@@ -435,7 +435,7 @@ describe Puppet::Type.type(:par) do
         playbook: valid_playbook,
         check_mode: true,
       )
-      expect(resource[:check_mode]).to eq(true)
+      expect(resource[:check_mode]).to eq(:true)
     end
 
     it 'accepts false' do
@@ -444,7 +444,7 @@ describe Puppet::Type.type(:par) do
         playbook: valid_playbook,
         check_mode: false,
       )
-      expect(resource[:check_mode]).to eq(false)
+      expect(resource[:check_mode]).to eq(:false)
     end
 
     it 'is optional' do
@@ -461,7 +461,7 @@ describe Puppet::Type.type(:par) do
         playbook: valid_playbook,
         check_mode: 'true',
       )
-      expect(resource[:check_mode]).to eq(true)
+      expect(resource[:check_mode]).to eq(:true)
     end
 
     it 'accepts string "false"' do
@@ -470,7 +470,7 @@ describe Puppet::Type.type(:par) do
         playbook: valid_playbook,
         check_mode: 'false',
       )
-      expect(resource[:check_mode]).to eq(false)
+      expect(resource[:check_mode]).to eq(:false)
     end
   end
 

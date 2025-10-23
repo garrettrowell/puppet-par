@@ -185,10 +185,10 @@ Puppet::Type.type(:par).provide(:par) do
     end
 
     # Add verbose flag
-    cmd << '-v' if resource[:verbose] == true
+    cmd << '-v' if resource[:verbose] == :true
 
     # Add check mode flag
-    cmd << '--check' if resource[:check_mode] == true
+    cmd << '--check' if resource[:check_mode] == :true
 
     # Add user option
     if resource[:user]
