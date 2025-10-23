@@ -49,29 +49,34 @@ Puppet::Type.type(:par).provide(:par) do
   commands ansible_playbook: 'ansible-playbook'
 
   # @!method exists?
-  #   Determines whether the PAR resource should be executed.
+  #   Determines whether the PAR resource is in the desired state.
   #
-  #   Unlike traditional Puppet resources that manage persistent state (like files
-  #   or packages), PAR resources represent playbook executions - actions rather than
-  #   states. Therefore, this method always returns false to ensure the playbook
-  #   executes every time Puppet runs when ensure => present.
+  #   This method executes the playbook and checks if it made any changes. Unlike
+  #   traditional resources, PAR always executes the playbook, but reports differently
+  #   based on whether changes occurred:
   #
-  #   This behavior is similar to the `exec` resource type, which also represents
-  #   actions rather than states. The actual idempotency is handled by Ansible's
-  #   own change detection mechanisms within the playbook.
+  #   - If playbook made changes (stats[:changed] > 0): returns false, triggering
+  #     Puppet to call create() which reports "created"
+  #   - If playbook was idempotent (stats[:changed] == 0): returns true, indicating
+  #     the resource is already in sync (no "created" message)
   #
-  #   Note: The playbook file existence is validated in the `create` method before
-  #   execution, so this method doesn't need to check for file presence.
+  #   This provides better reporting that distinguishes between:
+  #   - Execution with changes → "created" appears in Puppet output
+  #   - Execution without changes → No change reported (idempotent)
   #
-  #   @return [Boolean] always returns false to trigger playbook execution
-  #
-  #   @example
-  #     provider.exists? #=> false (always, to ensure execution)
+  #   @return [Boolean] true if playbook was idempotent, false if changes were made
   #
   def exists?
-    # Always return false so create() is always called when ensure => present
-    # This makes PAR behave like exec - it always runs
-    false
+    # In noop mode, always return false so create() is called (which shows the noop message)
+    return false if resource.noop?
+
+    # Execute the playbook and cache the results
+    @execution_output = execute_playbook_with_validation
+    @execution_stats = parse_json_output(@execution_output)
+
+    # Return true if no changes (idempotent), false if changes were made
+    # This causes Puppet to call create() only when changes occurred
+    @execution_stats[:changed].zero?
   end
 
   # @!method validate_ansible
@@ -251,6 +256,42 @@ Puppet::Type.type(:par).provide(:par) do
   #     provider.create #=> Acquires lock, executes, releases lock
   #
   def create
+    # Use cached results from exists? if available, otherwise execute now
+    output = @execution_output || execute_playbook_with_validation
+    stats = @execution_stats || parse_json_output(output)
+
+    # Clear cached results
+    @execution_output = nil
+    @execution_stats = nil
+
+    # Handle logoutput parameter - display full output if requested
+    if resource[:logoutput] == :true
+      Puppet.notice("Ansible playbook execution output:\n#{output}")
+    end
+
+    # Log completion message with change count
+    task_word = (stats[:changed] == 1) ? 'task' : 'tasks'
+    Puppet.info("Ansible playbook execution completed: #{stats[:changed]} #{task_word} changed")
+  ensure
+    # Always release lock if it was acquired
+    release_lock if resource[:exclusive] == :true
+  end
+
+  # @!method execute_playbook_with_validation
+  #   Executes the playbook with all necessary validation and error handling.
+  #
+  #   This method performs the complete playbook execution workflow:
+  #   1. Validates ansible-playbook is available
+  #   2. Validates playbook file exists
+  #   3. Acquires exclusive lock if requested
+  #   4. Handles noop mode
+  #   5. Executes the playbook
+  #   6. Checks for failures
+  #
+  #   @return [String] The output from ansible-playbook execution
+  #   @raise [Puppet::Error] if validation fails or execution encounters errors
+  #
+  def execute_playbook_with_validation
     playbook_path = resource[:playbook]
 
     # Validate ansible-playbook is available
@@ -274,36 +315,21 @@ Puppet::Type.type(:par).provide(:par) do
     if resource.noop?
       command = build_command
       Puppet.notice("Would execute: #{command.join(' ')}")
-      return
+      # Return fake output for noop mode
+      return '{"stats": {"localhost": {"ok": 0, "changed": 0, "failed": 0}}}'
     end
 
     # Execute the playbook and get output
     output = execute_playbook
 
-    # Parse JSON output to get execution statistics
+    # Parse to check for failures
     stats = parse_json_output(output)
-
-    # Handle logoutput parameter - display full output if requested
-    if resource[:logoutput] == :true
-      Puppet.notice("Ansible playbook execution output:\n#{output}")
-    end
-
-    # Check for failures and raise error if any tasks failed
     if stats[:failed] > 0
       task_word = (stats[:failed] == 1) ? 'task' : 'tasks'
       raise Puppet::Error, "Ansible playbook execution failed: #{stats[:failed]} #{task_word} failed"
     end
 
-    # Log appropriate message based on change detection
-    if stats[:changed] > 0
-      task_word = (stats[:changed] == 1) ? 'task' : 'tasks'
-      Puppet.info("Ansible playbook execution completed: #{stats[:changed]} #{task_word} changed")
-    else
-      Puppet.debug('Ansible playbook execution completed with no changes (idempotent run)')
-    end
-  ensure
-    # Always release lock if it was acquired
-    release_lock if resource[:exclusive] == :true
+    output
   end
 
   # @!method parse_json_output

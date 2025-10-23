@@ -5,9 +5,9 @@
 # execution statistics and report whether tasks made changes to the system.
 #
 # Change Detection Behavior:
-# - First run: Creates file, PAR reports "X tasks changed" (info level)
-# - Second run: File already exists, PAR reports "no changes" (debug level)
-# - This demonstrates Ansible's idempotency through PAR
+# - First run: Creates directory and file, Puppet shows "ensure: created"
+# - Second run: No changes needed, Puppet shows NO "created" message (idempotent)
+# - This demonstrates Ansible's idempotency detection through PAR
 #
 # Requirements:
 # - ansible-playbook must be installed and available in PATH
@@ -20,7 +20,7 @@
 #   puppet apply --libdir=lib examples/idempotent.pp
 #
 #   # Clean up to test again
-#   rm /tmp/idempotent_test.txt
+#   rm -rf /tmp/par_test_dir
 
 # Create a playbook that is idempotent (file creation)
 file { '/tmp/idempotent_playbook.yml':
@@ -32,23 +32,24 @@ file { '/tmp/idempotent_playbook.yml':
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Create a test file (idempotent task)
+    - name: Ensure test directory exists (idempotent task)
       ansible.builtin.file:
-        path: /tmp/idempotent_test.txt
-        state: touch
-        mode: '0644'
-    
+        path: /tmp/par_test_dir
+        state: directory
+        mode: '0755'
+
     - name: Set file content (idempotent task)
       ansible.builtin.copy:
-        dest: /tmp/idempotent_test.txt
+        dest: /tmp/par_test_dir/idempotent_test.txt
         content: |
           This file was created by PAR idempotency test.
           If this file already exists with this content, no changes will be made.
         mode: '0644'
-    
+
     - name: Display idempotency status
       ansible.builtin.debug:
         msg: "Task completed - check PAR change detection!"
+      changed_when: false
 | END
   # lint:endignore
 }
@@ -61,22 +62,22 @@ par { 'idempotent-example':
 
 # Change Detection Output:
 #
-# FIRST RUN (when /tmp/idempotent_test.txt doesn't exist):
-# Info: /Stage[main]/Main/Par[idempotent-example]/ensure: Ansible playbook 
-#       execution completed: 2 tasks changed
+# FIRST RUN (when /tmp/par_test_dir/idempotent_test.txt doesn't exist):
+# Notice: /Stage[main]/Main/Par[idempotent-example]/ensure: created
+# Info: Ansible playbook execution completed: 2 tasks changed
 #
-# SECOND RUN (when /tmp/idempotent_test.txt already exists with correct content):
-# Debug: /Stage[main]/Main/Par[idempotent-example]/ensure: Ansible playbook 
-#        execution completed with no changes (idempotent run)
+# SECOND RUN (when directory and file already exist with correct content):
+# Notice: Applied catalog in X.XX seconds
+# (NO "created" message - resource is idempotent)
 #
 # This demonstrates:
-# - PAR parses Ansible's JSON output to detect changes
-# - First run creates resources (reports changes at info level)
-# - Subsequent runs are idempotent (reports at debug level)
-# - Ansible's own change detection is preserved through PAR
+# - PAR executes Ansible playbook and checks for changes
+# - First run creates resources and Puppet reports "created"
+# - Subsequent idempotent runs do NOT show "created" (no changes)
+# - exists? returns true when no changes, false when changes made
+# - Puppet's change reporting accurately reflects actual system changes
 #
 # Notes:
 # - Change detection requires Ansible JSON callback (automatically enabled)
 # - Use 'logoutput => true' parameter to see full Ansible output
-# - Info messages appear in standard Puppet runs
-# - Debug messages only appear with --debug flag
+# - exists? method executes playbook to determine if changes would be made

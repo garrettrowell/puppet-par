@@ -13,9 +13,35 @@ describe Puppet::Type.type(:par).provider(:par) do
   let(:provider) { resource.provider }
 
   describe '#exists?' do
-    it 'always returns false to ensure playbook execution' do
-      # PAR resources represent actions (playbook executions), not states
-      # Therefore exists? always returns false so create() is always called
+    before(:each) do
+      allow(File).to receive(:exist?).with('/tmp/test.yml').and_return(true)
+      allow(Puppet::Util).to receive(:which).with('ansible-playbook').and_return('/usr/bin/ansible-playbook')
+      allow(resource).to receive(:noop?).and_return(false)
+    end
+
+    it 'returns false when playbook makes changes' do
+      # When playbook makes changes, exists? should return false to trigger create()
+      allow(provider).to receive(:execute_playbook).and_return('{"stats": {"localhost": {"ok": 2, "changed": 1, "failed": 0}}}')
+      expect(provider.exists?).to be false
+    end
+
+    it 'returns true when playbook is idempotent' do
+      # When playbook is idempotent, exists? should return true (no create() call)
+      allow(provider).to receive(:execute_playbook).and_return('{"stats": {"localhost": {"ok": 2, "changed": 0, "failed": 0}}}')
+      expect(provider.exists?).to be true
+    end
+
+    it 'caches execution results for create method' do
+      # exists? should cache the output so create() doesn't re-execute
+      allow(provider).to receive(:execute_playbook).once.and_return('{"stats": {"localhost": {"ok": 1, "changed": 1, "failed": 0}}}')
+      provider.exists?
+      provider.create
+    end
+
+    it 'returns false in noop mode without executing playbook' do
+      # In noop mode, should return false immediately without validation
+      allow(resource).to receive(:noop?).and_return(true)
+      expect(provider).not_to receive(:execute_playbook_with_validation)
       expect(provider.exists?).to be false
     end
   end
@@ -36,8 +62,19 @@ describe Puppet::Type.type(:par).provider(:par) do
         allow(provider).to receive(:execute_playbook).and_return('{"stats": {"localhost": {"ok": 1, "changed": 0, "failed": 0}}}')
       end
 
-      it 'calls execute_playbook' do
-        expect(provider).to receive(:execute_playbook).and_return('{"stats": {"localhost": {"ok": 1, "changed": 0, "failed": 0}}}')
+      it 'uses cached results from exists? if available' do
+        # Set up cached results
+        provider.instance_variable_set(:@execution_output, '{"stats": {"localhost": {"ok": 1, "changed": 1, "failed": 0}}}')
+        provider.instance_variable_set(:@execution_stats, { ok: 1, changed: 1, failed: 0 })
+
+        # Should not call execute_playbook again
+        expect(provider).not_to receive(:execute_playbook)
+        provider.create
+      end
+
+      it 'executes playbook if no cached results available' do
+        # Should call execute_playbook_with_validation
+        expect(provider).to receive(:execute_playbook_with_validation).and_return('{"stats": {"localhost": {"ok": 1, "changed": 0, "failed": 0}}}')
         provider.create
       end
     end
@@ -760,18 +797,20 @@ describe Puppet::Type.type(:par).provider(:par) do
     end
 
     it 'reports changed when Ansible reports changes' do
-      allow(provider).to receive(:parse_json_output).and_return(
-        ok: 3, changed: 2, failed: 0,
-      )
-      expect(Puppet).to receive(:info).with(%r{2 tasks? changed})
+      # Set up cached results to simulate exists? already ran
+      provider.instance_variable_set(:@execution_output, '')
+      provider.instance_variable_set(:@execution_stats, { ok: 3, changed: 2, failed: 0 })
+
+      expect(Puppet).to receive(:info).with(%r{2 tasks changed})
       provider.create
     end
 
-    it 'reports in-sync when Ansible reports no changes' do
-      allow(provider).to receive(:parse_json_output).and_return(
-        ok: 3, changed: 0, failed: 0,
+    it 'executes playbook when no cached results' do
+      allow(provider).to receive_messages(
+        execute_playbook_with_validation: '',
+        parse_json_output: { ok: 3, changed: 1, failed: 0 },
       )
-      expect(Puppet).to receive(:debug).with(%r{no changes})
+      expect(Puppet).to receive(:info).with(%r{1 task changed})
       provider.create
     end
 

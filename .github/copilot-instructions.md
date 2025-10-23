@@ -74,14 +74,18 @@ All changes must pass the following validation steps:
 - ❌ **NEVER** suggest "conditionally passed" or "partial pass" for validation gates
 - ❌ **NEVER** skip failing tests with the intention of "fixing them later"
 - ❌ **NEVER** consider work complete with any failing validations
+- ❌ **NEVER** ignore or skip RuboCop conventions or warnings
+- ❌ **NEVER** leave "optional" style issues unresolved
 
 ✅ **ALL validation steps must pass 100%** before moving to the next phase
 ✅ **ALL tests must pass** - unit tests AND acceptance tests
-✅ **Zero offenses** in all validators
+✅ **Zero offenses** in all validators - including conventions and warnings
 ✅ **All examples must work** without errors
+✅ **All RuboCop suggestions must be addressed** - conventions are not optional
 
 If validation fails, the work is NOT complete. Fix all failures before proceeding.
-No exceptions. No shortcuts. No compromises.
+If RuboCop reports conventions or warnings, fix them immediately.
+No exceptions. No shortcuts. No compromises. No "optional" issues.
 
 ## Recent Changes
 - 001-ansible-playbook-runner: Added Ruby 2.7+ (compatible with Puppet 7.24+) + Puppet 7.24+ (core framework for custom types/providers), Ansible (external dependency, assumed pre-installed)
