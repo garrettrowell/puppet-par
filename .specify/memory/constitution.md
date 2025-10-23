@@ -2,26 +2,31 @@
   ============================================================================
   SYNC IMPACT REPORT
   ============================================================================
-  Version Change: 1.0.0 → 1.1.0
+  Version Change: 1.2.0 → 1.3.0
   
-  Amendment: Added PDK template management requirement to Principle I.
+  Amendment: Mandate documented justification before disabling lint checks.
   
   Modified Principles:
-  - [UPDATED] I. Puppet Standards & PDK First
-    * Added requirement: PDK-managed files must be modified via .sync.yml + pdk update
-    * Rationale: Ensures customizations persist across PDK updates
+  - [UPDATED] IV. Validation & Quality Gates
+    * Added "Lint Check Disabling" bullet point
+    * Requires documented justification before disabling any lint check
+    * Mandates explaining why violation is necessary and unavoidable
+    * Reinforces NEVER modifying PDK-managed files (.puppet-lint.rc, .rubocop.yml) directly
+    * Encourages refactoring to comply rather than disabling checks
+    * Updated rationale to emphasize lint rules exist for good reasons
   
   Unchanged Principles:
+  - I. Puppet Standards & PDK First
   - II. Test-Driven Development (RSpec/Cucumber)
   - III. Documentation Standards (Puppet Strings)
-  - IV. Validation & Quality Gates
   - V. Code Quality & Idiomatic Puppet
   
   Impact Analysis:
-  - Development workflow now requires .sync.yml updates for Gemfile, Rakefile, etc.
-  - Example: Adding cucumber/aruba gems requires .sync.yml configuration
-  - No breaking changes to existing code
-  - Prevents accidental loss of customizations during pdk update
+  - Lint checks can no longer be disabled without documented technical justification
+  - Must explore code refactoring before considering disabling checks
+  - PDK-managed lint configuration files remain off-limits for direct edits
+  - Encourages using proper Puppet/Ruby idioms rather than working around linters
+  - No breaking changes to existing workflow
   
   Templates Status:
   ✅ plan-template.md - No changes required
@@ -34,8 +39,12 @@
   ✅ .github/prompts/*.prompt.md - No changes required
   
   Follow-up TODOs:
-  - Document common .sync.yml patterns in project documentation
-  - Add .sync.yml examples to README or CONTRIBUTING guide
+  - Review any existing lint disables in codebase for proper justification
+  - Document common lint patterns and how to comply with them
+  
+  Previous Amendments:
+  - v1.1.0 → v1.2.0: Explicitly mandated RuboCop validation
+  - v1.0.0 → v1.1.0: Added PDK template management requirement (.sync.yml)
   
   ============================================================================
 -->
@@ -86,13 +95,20 @@ All Puppet code MUST be documented following Puppet Strings formatting:
 
 All code MUST pass validation checks before commit:
 
-- **PDK Validation**: `pdk validate` MUST report zero offenses
+- **PDK Validation**: `pdk validate` MUST report zero offenses across all validators
+  - **RuboCop**: All Ruby code (types, providers, specs) MUST pass RuboCop style checks with zero offenses
+  - **Puppet-Lint**: All Puppet manifests MUST pass puppet-lint checks with zero warnings
+  - **Metadata Validation**: metadata.json MUST pass PDK schema validation
+  - **YAML Syntax**: All YAML files MUST be syntactically valid
 - **Syntax**: All Puppet manifests, Ruby code, and templates MUST be syntactically valid
-- **Linting**: All Puppet code MUST pass puppet-lint checks with no warnings
-- **Metadata**: metadata.json MUST be valid JSON and pass PDK schema validation
 - **Dependencies**: All module dependencies MUST be explicitly declared and version-pinned
+- **Lint Check Disabling**: NEVER disable lint checks without documented justification. If a lint check must be disabled:
+  - Document the specific technical reason in code comments
+  - Explain why the violation is necessary and unavoidable
+  - Consider if the code can be refactored to comply instead
+  - NEVER modify PDK-managed files (.puppet-lint.rc, .rubocop.yml) directly - use `.sync.yml` if configuration changes are truly necessary
 
-**Rationale**: Automated validation catches common errors early and enforces community best practices, reducing technical debt and maintenance burden.
+**Rationale**: Automated validation catches common errors early and enforces community best practices, reducing technical debt and maintenance burden. RuboCop ensures consistent Ruby style, readability, and prevents common Ruby antipatterns. Lint rules exist for good reasons; disabling them should be rare and well-justified.
 
 ### V. Code Quality & Idiomatic Puppet
 
@@ -157,4 +173,4 @@ This constitution supersedes all other development practices and conventions. Al
 - Automated gates (PDK validate, test suite) enforce non-negotiable principles
 - Use `.specify/templates/agent-file-template.md` for runtime development guidance
 
-**Version**: 1.1.0 | **Ratified**: 2025-10-22 | **Last Amended**: 2025-10-22
+**Version**: 1.3.0 | **Ratified**: 2025-10-22 | **Last Amended**: 2025-10-22

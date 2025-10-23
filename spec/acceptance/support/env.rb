@@ -12,7 +12,7 @@ Aruba.configure do |config|
   config.exit_timeout = 300
   config.io_wait_timeout = 30
   config.startup_wait_time = 2
-  
+
   # Use relative path for Aruba working directory
   config.working_directory = 'tmp/aruba'
 end
@@ -23,7 +23,7 @@ module PuppetHelpers
   def module_path
     File.expand_path('../../../..', __dir__)
   end
-  
+
   # Build puppet apply command with proper modulepath
   def puppet_apply_command(manifest_path, options = {})
     cmd = ['puppet', 'apply']
@@ -34,12 +34,12 @@ module PuppetHelpers
     cmd << manifest_path
     cmd.join(' ')
   end
-  
+
   # Check if ansible-playbook is available
   def ansible_available?
     system('which ansible-playbook > /dev/null 2>&1')
   end
-  
+
   # Create a temporary manifest file
   def create_manifest(name, content)
     manifest_path = File.join(aruba.config.working_directory, "#{name}.pp")
@@ -47,15 +47,15 @@ module PuppetHelpers
     File.write(manifest_path, content)
     manifest_path
   end
-  
+
   # Create a temporary playbook file
   def create_playbook(name, content)
-    playbook_path = File.join(aruba.config.working_directory, "playbooks", "#{name}.yml")
+    playbook_path = File.join(aruba.config.working_directory, 'playbooks', "#{name}.yml")
     FileUtils.mkdir_p(File.dirname(playbook_path))
     File.write(playbook_path, content)
     playbook_path
   end
-  
+
   # Clean up temporary files
   def cleanup_temp_files
     temp_dir = File.join(Dir.pwd, 'tmp', 'aruba')
@@ -70,10 +70,10 @@ World(PuppetHelpers)
 Before do
   # Ensure clean state before each scenario
   cleanup_temp_files
-  
+
   # Skip tests if Ansible is not installed
   unless ansible_available?
-    skip_this_scenario("Ansible is not installed. Please install ansible-playbook to run acceptance tests.")
+    skip_this_scenario('Ansible is not installed. Please install ansible-playbook to run acceptance tests.')
   end
 end
 

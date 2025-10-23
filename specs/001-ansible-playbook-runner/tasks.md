@@ -32,8 +32,8 @@ This task list implements a Puppet custom type and provider named `par` that exe
 - [x] T001 Verify PDK module structure exists with lib/, spec/, examples/ directories
 - [x] T002 Create lib/puppet/type/ directory if not exists
 - [x] T003 Create lib/puppet/provider/par/ directory if not exists
-- [x] T004 Create spec/unit/puppet/type/ directory for type tests
-- [x] T005 Create spec/unit/puppet/provider/par/ directory for provider tests
+- [x] T004 Create spec/types/ directory for type tests
+- [x] T005 Create spec/unit/providers/ directory for provider tests (PDK-compatible layout)
 - [x] T006 Create spec/acceptance/ directory for Cucumber scenarios
 - [x] T007 Create spec/fixtures/playbooks/ directory for test playbooks
 - [x] T008 Create examples/ directory if not exists
@@ -75,49 +75,49 @@ This task list implements a Puppet custom type and provider named `par` that exe
 
 ### Tests (TDD - Write First)
 
-- [ ] T018 [P] [US1] Write type spec in spec/unit/puppet/type/par_spec.rb - test namevar parameter
-- [ ] T019 [P] [US1] Write type spec - test playbook parameter validation (required, absolute path)
-- [ ] T020 [P] [US1] Write type spec - test playbook parameter rejects relative paths
-- [ ] T021 [P] [US1] Write provider spec in spec/unit/puppet/provider/par/par_spec.rb - test exists? method
-- [ ] T022 [P] [US1] Write provider spec - test create method basic structure
-- [ ] T023 [P] [US1] Write provider spec - test build_command generates correct ansible-playbook command
-- [ ] T024 [P] [US1] Write provider spec - test validate_ansible checks for ansible-playbook in PATH
-- [ ] T025 [P] [US1] Write provider spec - test noop mode prevents execution
-- [ ] T026 [P] [US1] Write provider spec - test error handling for missing playbook file
-- [ ] T027 [P] [US1] Write provider spec - test error handling for missing ansible executable
-- [ ] T028 [P] [US1] Write Cucumber feature in spec/acceptance/par_basic.feature - basic execution scenario
+- [x] T018 [P] [US1] Write type spec in spec/types/par_spec.rb - test namevar parameter
+- [x] T019 [P] [US1] Write type spec - test playbook parameter validation (required, absolute path)
+- [x] T020 [P] [US1] Write type spec - test playbook parameter rejects relative paths
+- [x] T021 [P] [US1] Write provider spec in spec/providers/par_spec.rb - test exists? method
+- [x] T022 [P] [US1] Write provider spec - test create method basic structure
+- [x] T023 [P] [US1] Write provider spec - test build_command generates correct ansible-playbook command
+- [x] T024 [P] [US1] Write provider spec - test validate_ansible checks for ansible-playbook in PATH
+- [x] T025 [P] [US1] Write provider spec - test noop mode prevents execution
+- [x] T026 [P] [US1] Write provider spec - test error handling for missing playbook file
+- [x] T027 [P] [US1] Write provider spec - test error handling for missing ansible executable
+- [x] T028 [P] [US1] Write Cucumber feature in spec/acceptance/par_basic.feature - basic execution scenario
 
 **Run Tests**: `pdk test unit -v` - All tests should FAIL (Red phase)
 
 ### Implementation
 
-- [ ] T029 [US1] Implement PAR custom type skeleton in lib/puppet/type/par.rb with @doc
-- [ ] T030 [US1] Implement namevar parameter (name) in lib/puppet/type/par.rb
-- [ ] T031 [US1] Implement playbook parameter with absolute path validation in lib/puppet/type/par.rb
-- [ ] T032 [US1] Implement autorequire for File[playbook] in lib/puppet/type/par.rb
-- [ ] T033 [US1] Add Puppet Strings documentation for namevar and playbook parameters
-- [ ] T034 [US1] Create provider skeleton in lib/puppet/provider/par/par.rb with desc
-- [ ] T035 [US1] Implement exists? method to check playbook file existence
-- [ ] T036 [US1] Implement validate_ansible method to check for ansible-playbook in PATH
-- [ ] T037 [US1] Implement build_command method to construct ansible-playbook CLI command
-- [ ] T038 [US1] Implement create method with ansible-playbook execution using Puppet::Util::Execution
-- [ ] T039 [US1] Implement noop mode support in create method
-- [ ] T040 [US1] Implement error handling for missing playbook file
-- [ ] T041 [US1] Implement error handling for missing ansible executable
-- [ ] T042 [US1] Add Puppet Strings documentation for provider methods
+- [x] T029 [US1] Implement PAR custom type skeleton in lib/puppet/type/par.rb with @doc
+- [x] T030 [US1] Implement namevar parameter (name) in lib/puppet/type/par.rb
+- [x] T031 [US1] Implement playbook parameter with absolute path validation in lib/puppet/type/par.rb
+- [x] T032 [US1] Implement autorequire for File[playbook] in lib/puppet/type/par.rb
+- [x] T033 [US1] Add Puppet Strings documentation for namevar and playbook parameters
+- [x] T034 [US1] Create provider skeleton in lib/puppet/provider/par/par.rb with desc
+- [x] T035 [US1] Implement exists? method to check playbook file existence
+- [x] T036 [US1] Implement validate_ansible method to check for ansible-playbook in PATH
+- [x] T037 [US1] Implement build_command method to construct ansible-playbook CLI command
+- [x] T038 [US1] Implement create method with ansible-playbook execution using Puppet::Util::Execution
+- [x] T039 [US1] Implement noop mode support in create method
+- [x] T040 [US1] Implement error handling for missing playbook file
+- [x] T041 [US1] Implement error handling for missing ansible executable
+- [x] T042 [US1] Add Puppet Strings documentation for provider methods
 
 **Run Tests**: `pdk test unit -v` - All US1 tests should PASS (Green phase)
 
 ### Examples & Documentation
 
-- [ ] T043 [P] [US1] Create examples/basic.pp with minimal PAR resource declaration
-- [ ] T044 [P] [US1] Create examples/noop.pp demonstrating noop mode usage
+- [x] T043 [P] [US1] Create examples/basic.pp with minimal PAR resource declaration
+- [x] T044 [P] [US1] Create examples/noop.pp demonstrating noop mode usage
 
 **Validation**:
-- [ ] Run `pdk validate` - zero offenses
-- [ ] Run `pdk test unit -v` - 100% pass rate for US1 tests
-- [ ] Run `puppet apply examples/basic.pp` - playbook executes successfully
-- [ ] Run `puppet apply --noop examples/noop.pp` - shows what would execute without running
+- [x] Run `pdk validate` - zero offenses
+- [x] Run `pdk test unit -v` - 100% pass rate for US1 tests (34 examples, 0 failures)
+- [x] Run `puppet apply examples/basic.pp` - playbook executes successfully (locale environment variables set by provider)
+- [x] Run `puppet apply --noop examples/noop.pp` - shows what would execute without running
 
 **Story Complete**: User Story 1 is independently testable and deployable as MVP.
 
@@ -415,8 +415,9 @@ For each user story phase:
 # Run all unit tests
 pdk test unit -v
 
-# Run specific test file
-pdk test unit --tests=spec/unit/puppet/type/par_spec.rb
+# Run specific test file (standard puppet-rspec layout)
+pdk test unit --tests=spec/types/par_spec.rb
+pdk test unit --tests=spec/providers/par_spec.rb
 
 # Run validation
 pdk validate
