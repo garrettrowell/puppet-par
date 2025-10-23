@@ -28,6 +28,7 @@ Feature: PAR Playbook Variables Passing
     And a Puppet manifest with PAR resource:
       """
       par { 'test-vars':
+        logoutput     => true,
         playbook      => '/tmp/aruba/playbooks/vars-test.yml',
         playbook_vars => {
           'app_version' => '1.2.3',
@@ -62,6 +63,7 @@ Feature: PAR Playbook Variables Passing
     And a Puppet manifest with PAR resource:
       """
       par { 'test-numeric':
+        logoutput     => true,
         playbook      => '/tmp/aruba/playbooks/numeric-vars.yml',
         playbook_vars => {
           'port'    => 8080,
@@ -96,6 +98,7 @@ Feature: PAR Playbook Variables Passing
     And a Puppet manifest with PAR resource:
       """
       par { 'test-bool':
+        logoutput     => true,
         playbook      => '/tmp/aruba/playbooks/bool-vars.yml',
         playbook_vars => {
           'feature_enabled' => true,
@@ -125,6 +128,7 @@ Feature: PAR Playbook Variables Passing
     And a Puppet manifest with PAR resource:
       """
       par { 'test-no-vars':
+        logoutput     => true,
         playbook      => '/tmp/aruba/playbooks/no-vars.yml',
         playbook_vars => {},
       }
@@ -155,6 +159,7 @@ Feature: PAR Playbook Variables Passing
     And a Puppet manifest with PAR resource:
       """
       par { 'test-special':
+        logoutput     => true,
         playbook      => '/tmp/aruba/playbooks/special-chars.yml',
         playbook_vars => {
           'log_path'    => '/var/log/app.log',
@@ -184,6 +189,7 @@ Feature: PAR Playbook Variables Passing
     And a Puppet manifest with PAR resource:
       """
       par { 'test-json':
+        logoutput     => true,
         playbook      => '/tmp/aruba/playbooks/simple-var.yml',
         playbook_vars => {
           'version' => '2.0.0',

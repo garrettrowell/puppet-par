@@ -66,6 +66,23 @@ All changes must pass the following validation steps:
 
 **Note**: Do not commit or consider work complete unless all four validation steps pass.
 
+## Constitution Enforcement
+
+**NO SHORTCUTS ALLOWED**: This constitution MUST be strictly adhered to at all times.
+
+- ❌ **NEVER** proceed past a validation gate without 100% pass rate
+- ❌ **NEVER** suggest "conditionally passed" or "partial pass" for validation gates
+- ❌ **NEVER** skip failing tests with the intention of "fixing them later"
+- ❌ **NEVER** consider work complete with any failing validations
+
+✅ **ALL validation steps must pass 100%** before moving to the next phase
+✅ **ALL tests must pass** - unit tests AND acceptance tests
+✅ **Zero offenses** in all validators
+✅ **All examples must work** without errors
+
+If validation fails, the work is NOT complete. Fix all failures before proceeding.
+No exceptions. No shortcuts. No compromises.
+
 ## Recent Changes
 - 001-ansible-playbook-runner: Added Ruby 2.7+ (compatible with Puppet 7.24+) + Puppet 7.24+ (core framework for custom types/providers), Ansible (external dependency, assumed pre-installed)
 

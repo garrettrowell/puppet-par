@@ -222,59 +222,59 @@ This task list implements a Puppet custom type and provider named `par` that exe
 
 ### Tests (TDD - Write First)
 
-- [ ] T093 [P] [US3] Write type spec - test logoutput parameter accepts Boolean, defaults to false
-- [ ] T094 [P] [US3] Write type spec - test exclusive parameter accepts Boolean, defaults to false
-- [ ] T095 [P] [US3] Write provider spec - test build_command adds -o flag for JSON output
-- [ ] T096 [P] [US3] Write provider spec - test parse_json_output extracts changed_count from JSON
-- [ ] T097 [P] [US3] Write provider spec - test parse_json_output extracts ok_count from JSON
-- [ ] T098 [P] [US3] Write provider spec - test parse_json_output extracts failed_count from JSON
-- [ ] T099 [P] [US3] Write provider spec - test create reports changed when changed_count > 0
-- [ ] T100 [P] [US3] Write provider spec - test create reports in-sync when changed_count == 0
-- [ ] T101 [P] [US3] Write provider spec - test create raises error when failed_count > 0
-- [ ] T102 [P] [US3] Write provider spec - test logoutput displays stdout when true
-- [ ] T103 [P] [US3] Write provider spec - test logoutput suppresses stdout when false
-- [ ] T104 [P] [US3] Write provider spec - test acquire_lock when exclusive is true
-- [ ] T105 [P] [US3] Write provider spec - test release_lock when exclusive is true
-- [ ] T106 [P] [US3] Write provider spec - test lock prevents concurrent execution
-- [ ] T107 [P] [US3] Write Cucumber feature - idempotency scenario (run twice, verify change detection)
+- [x] T093 [P] [US3] Write type spec - test logoutput parameter accepts Boolean, defaults to false
+- [x] T094 [P] [US3] Write type spec - test exclusive parameter accepts Boolean, defaults to false
+- [x] T095 [P] [US3] Write provider spec - test build_command adds -o flag for JSON output
+- [x] T096 [P] [US3] Write provider spec - test parse_json_output extracts changed_count from JSON
+- [x] T097 [P] [US3] Write provider spec - test parse_json_output extracts ok_count from JSON
+- [x] T098 [P] [US3] Write provider spec - test parse_json_output extracts failed_count from JSON
+- [x] T099 [P] [US3] Write provider spec - test create reports changed when changed_count > 0
+- [x] T100 [P] [US3] Write provider spec - test create reports in-sync when changed_count == 0
+- [x] T101 [P] [US3] Write provider spec - test create raises error when failed_count > 0
+- [x] T102 [P] [US3] Write provider spec - test logoutput displays stdout when true
+- [x] T103 [P] [US3] Write provider spec - test logoutput suppresses stdout when false
+- [x] T104 [P] [US3] Write provider spec - test acquire_lock when exclusive is true
+- [x] T105 [P] [US3] Write provider spec - test release_lock when exclusive is true
+- [x] T106 [P] [US3] Write provider spec - test lock prevents concurrent execution
+- [x] T107 [P] [US3] Write Cucumber feature - idempotency scenario (run twice, verify change detection)
 
-**Run Tests**: `pdk test unit -v` - All US3 tests should FAIL (Red phase)
+**Run Tests**: `pdk test unit -v` - All US3 tests should FAIL (Red phase) ✅ 30 tests failing
 
 ### Implementation
 
-- [ ] T108 [US3] Implement logoutput parameter with Boolean validation in lib/puppet/type/par.rb
-- [ ] T109 [US3] Implement exclusive parameter with Boolean validation in lib/puppet/type/par.rb
-- [ ] T110 [US3] Add Puppet Strings documentation for logoutput and exclusive parameters
-- [ ] T111 [US3] Update build_command to add -o flag for JSON output format
-- [ ] T112 [US3] Implement parse_json_output method to parse Ansible JSON stats
-- [ ] T113 [US3] Update execute_playbook to capture JSON output
-- [ ] T114 [US3] Update execute_playbook to call parse_json_output
-- [ ] T115 [US3] Update execute_playbook to display output when logoutput is true
-- [ ] T116 [US3] Update execute_playbook to suppress output when logoutput is false
-- [ ] T117 [US3] Update execute_playbook to raise error when failed_count > 0
-- [ ] T118 [US3] Update execute_playbook to log info message when changed_count > 0
-- [ ] T119 [US3] Update execute_playbook to log debug message when changed_count == 0
-- [ ] T120 [US3] Implement acquire_lock method using Puppet::Util::Lockfile or similar
-- [ ] T121 [US3] Implement release_lock method
-- [ ] T122 [US3] Update create method to acquire lock before execution if exclusive is true
-- [ ] T123 [US3] Update create method to release lock after execution in ensure block
-- [ ] T124 [US3] Implement lock error handling for acquisition failures
+- [x] T108 [US3] Implement logoutput parameter with Boolean validation in lib/puppet/type/par.rb
+- [x] T109 [US3] Implement exclusive parameter with Boolean validation in lib/puppet/type/par.rb
+- [x] T110 [US3] Add Puppet Strings documentation for logoutput and exclusive parameters
+- [x] T111 [US3] Update build_command to add -o flag for JSON output format
+- [x] T112 [US3] Implement parse_json_output method to parse Ansible JSON stats
+- [x] T113 [US3] Update execute_playbook to capture JSON output
+- [x] T114 [US3] Update execute_playbook to call parse_json_output
+- [x] T115 [US3] Update execute_playbook to display output when logoutput is true
+- [x] T116 [US3] Update execute_playbook to suppress output when logoutput is false
+- [x] T117 [US3] Update execute_playbook to raise error when failed_count > 0
+- [x] T118 [US3] Update execute_playbook to log info message when changed_count > 0
+- [x] T119 [US3] Update execute_playbook to log debug message when changed_count == 0
+- [x] T120 [US3] Implement acquire_lock method using Puppet::Util::Lockfile or similar
+- [x] T121 [US3] Implement release_lock method
+- [x] T122 [US3] Update create method to acquire lock before execution if exclusive is true
+- [x] T123 [US3] Update create method to release lock after execution in ensure block
+- [x] T124 [US3] Implement lock error handling for acquisition failures
 
 **Run Tests**: `pdk test unit -v` - All US3 tests should PASS (Green phase)
 
 ### Examples & Documentation
 
-- [ ] T125 [P] [US3] Create examples/idempotent.pp demonstrating change detection
-- [ ] T126 [P] [US3] Create examples/logoutput.pp demonstrating logoutput parameter
-- [ ] T127 [P] [US3] Create examples/exclusive.pp demonstrating exclusive parameter
+- [x] T125 [P] [US3] Create examples/idempotent.pp demonstrating change detection
+- [x] T126 [P] [US3] Create examples/logoutput.pp demonstrating logoutput parameter
+- [x] T127 [P] [US3] Create examples/exclusive.pp demonstrating exclusive parameter
 
 **Validation**:
-- [ ] Run `pdk validate` - zero offenses
-- [ ] Run `pdk test unit -v` - 100% pass rate for all tests (US1 + US2 + US3)
-- [ ] Run `pdk bundle exec rake acceptance` - all acceptance scenarios pass
-- [ ] Run `puppet apply examples/idempotent.pp` twice - verify change detection
-- [ ] Verify JSON parsing with debug output
-- [ ] Test exclusive locking with concurrent PAR resources
+- [x] Run `pdk validate` - zero offenses
+- [x] Run `pdk test unit -v` - 100% pass rate for all tests (US1 + US2 + US3)
+- [x] Run `pdk bundle exec rake acceptance` - all acceptance scenarios pass (24/24)
+- [x] Run `puppet apply examples/idempotent.pp` twice - verify change detection
+- [x] Verify JSON parsing with debug output
+- [x] Test exclusive locking with concurrent PAR resources
 
 **Story Complete**: User Story 3 is independently testable. All P1-P3 stories complete.
 

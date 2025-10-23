@@ -694,4 +694,118 @@ describe Puppet::Type.type(:par) do
       expect(autorequired[0].source.title).to eq(playbook_path)
     end
   end
+
+  # T093: Test logoutput parameter
+  describe 'logoutput parameter' do
+    it 'accepts true' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+        logoutput: true,
+      )
+      expect(resource[:logoutput]).to eq(:true)
+    end
+
+    it 'accepts false' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+        logoutput: false,
+      )
+      expect(resource[:logoutput]).to eq(:false)
+    end
+
+    it 'defaults to false when not specified' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+      )
+      expect(resource[:logoutput]).to eq(:false)
+    end
+
+    it 'accepts string "true"' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+        logoutput: 'true',
+      )
+      expect(resource[:logoutput]).to eq(:true)
+    end
+
+    it 'accepts string "false"' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+        logoutput: 'false',
+      )
+      expect(resource[:logoutput]).to eq(:false)
+    end
+
+    it 'rejects non-boolean values' do
+      expect {
+        described_class.new(
+          name: resource_name,
+          playbook: valid_playbook,
+          logoutput: 'yes',
+        )
+      }.to raise_error(Puppet::Error, %r{Invalid value})
+    end
+  end
+
+  # T094: Test exclusive parameter
+  describe 'exclusive parameter' do
+    it 'accepts true' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+        exclusive: true,
+      )
+      expect(resource[:exclusive]).to eq(:true)
+    end
+
+    it 'accepts false' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+        exclusive: false,
+      )
+      expect(resource[:exclusive]).to eq(:false)
+    end
+
+    it 'defaults to false when not specified' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+      )
+      expect(resource[:exclusive]).to eq(:false)
+    end
+
+    it 'accepts string "true"' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+        exclusive: 'true',
+      )
+      expect(resource[:exclusive]).to eq(:true)
+    end
+
+    it 'accepts string "false"' do
+      resource = described_class.new(
+        name: resource_name,
+        playbook: valid_playbook,
+        exclusive: 'false',
+      )
+      expect(resource[:exclusive]).to eq(:false)
+    end
+
+    it 'rejects non-boolean values' do
+      expect {
+        described_class.new(
+          name: resource_name,
+          playbook: valid_playbook,
+          exclusive: 'maybe',
+        )
+      }.to raise_error(Puppet::Error, %r{Invalid value})
+    end
+  end
 end

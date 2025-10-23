@@ -467,6 +467,99 @@ Puppet::Type.newtype(:par) do
     end
   end
 
+  newparam(:logoutput, boolean: true) do
+    desc <<~DESC
+      Control whether playbook output is displayed in Puppet logs (optional).
+
+      When set to true, the full output from ansible-playbook execution will be
+      displayed in Puppet's notice log level. When set to false or omitted, only
+      summary information (changed/ok/failed task counts) will be logged.
+
+      This parameter is useful for debugging playbook execution or when you want
+      to see detailed Ansible output in your Puppet logs. However, verbose output
+      can clutter logs for routine operations.
+
+      Default: false (output suppressed, only summaries shown)
+
+      Note: Regardless of this setting, errors and failures will always be logged
+      to help with troubleshooting.
+
+      @example Show detailed playbook output
+        par { 'debug-deployment':
+          playbook  => '/etc/ansible/playbooks/deploy.yml',
+          logoutput => true,
+        }
+
+      @example Suppress detailed output (default behavior)
+        par { 'routine-task':
+          playbook  => '/etc/ansible/playbooks/maintenance.yml',
+          logoutput => false,
+        }
+
+      @example Omit parameter for default behavior
+        par { 'simple-task':
+          playbook => '/etc/ansible/playbooks/task.yml',
+          # logoutput defaults to false
+        }
+    DESC
+
+    newvalues(:true, :false)
+    defaultto :false
+  end
+
+  newparam(:exclusive, boolean: true) do
+    desc <<~DESC
+      Serialize playbook execution using a lock file (optional).
+
+      When set to true, PAR will acquire an exclusive lock before executing the
+      playbook and release it after completion. This prevents multiple PAR resources
+      from executing playbooks concurrently, which can be useful when:
+
+      - Playbooks modify shared resources that could cause conflicts
+      - System resources (CPU, memory, I/O) would be overwhelmed by concurrent runs
+      - Playbooks need to run in a specific sequence
+      - You want to prevent race conditions between multiple Ansible executions
+
+      The lock is implemented using Puppet's built-in locking mechanism and is stored
+      in Puppet's state directory. If a lock cannot be acquired (because another PAR
+      resource is currently executing), the resource will fail with an error.
+
+      Default: false (no locking, playbooks can run concurrently)
+
+      Important: The lock is per-node, not per-playbook. If you need finer-grained
+      locking, consider using Ansible's own locking mechanisms or orchestrating
+      execution order through Puppet resource dependencies.
+
+      @example Enable exclusive execution
+        par { 'critical-deployment':
+          playbook  => '/etc/ansible/playbooks/deploy.yml',
+          exclusive => true,
+        }
+
+      @example Allow concurrent execution (default)
+        par { 'routine-maintenance':
+          playbook  => '/etc/ansible/playbooks/maintenance.yml',
+          exclusive => false,
+        }
+
+      @example Multiple resources with selective locking
+        # This will run with locking
+        par { 'database-migration':
+          playbook  => '/etc/ansible/playbooks/db-migrate.yml',
+          exclusive => true,
+        }
+
+        # This can run concurrently (no lock needed)
+        par { 'log-rotation':
+          playbook  => '/etc/ansible/playbooks/logrotate.yml',
+          exclusive => false,
+        }
+    DESC
+
+    newvalues(:true, :false)
+    defaultto :false
+  end
+
   # @!method autorequire(type)
   #   Automatically creates a dependency on File resources that match the playbook path.
   #   This ensures that if a File resource manages the playbook file, Puppet will

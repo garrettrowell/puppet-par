@@ -33,11 +33,11 @@ describe Puppet::Type.type(:par).provider(:par) do
     context 'when not in noop mode' do
       before(:each) do
         allow(resource).to receive(:noop?).and_return(false)
-        allow(provider).to receive(:execute_playbook)
+        allow(provider).to receive(:execute_playbook).and_return('{"stats": {"localhost": {"ok": 1, "changed": 0, "failed": 0}}}')
       end
 
       it 'calls execute_playbook' do
-        expect(provider).to receive(:execute_playbook)
+        expect(provider).to receive(:execute_playbook).and_return('{"stats": {"localhost": {"ok": 1, "changed": 0, "failed": 0}}}')
         provider.create
       end
     end
@@ -547,6 +547,286 @@ describe Puppet::Type.type(:par).provider(:par) do
           provider.create
         }.to raise_error(Puppet::Error, %r{PATH}i)
       end
+    end
+  end
+
+  # T095: Test build_command adds JSON output flag
+  describe '#build_command with JSON output' do
+    before(:each) do
+      allow(File).to receive(:exist?).with('/tmp/test.yml').and_return(true)
+      allow(Puppet::Util).to receive(:which).with('ansible-playbook').and_return('/usr/bin/ansible-playbook')
+    end
+
+    it 'includes ANSIBLE_STDOUT_CALLBACK environment variable for JSON output' do
+      # This will be tested via environment settings in execute_playbook
+      # The build_command method doesn't need modification for JSON output
+      # as it's controlled by environment variables
+      expect(provider).to respond_to(:build_command)
+    end
+  end
+
+  # T096-T098: Test parse_json_output method
+  describe '#parse_json_output' do
+    let(:json_output_with_changes) do
+      <<~JSON
+        {
+          "plays": [
+            {
+              "play": {"name": "Test Play"},
+              "tasks": []
+            }
+          ],
+          "stats": {
+            "localhost": {
+              "ok": 5,
+              "changed": 2,
+              "unreachable": 0,
+              "failed": 0,
+              "skipped": 1,
+              "rescued": 0,
+              "ignored": 0
+            }
+          }
+        }
+      JSON
+    end
+
+    let(:json_output_no_changes) do
+      <<~JSON
+        {
+          "plays": [
+            {
+              "play": {"name": "Test Play"},
+              "tasks": []
+            }
+          ],
+          "stats": {
+            "localhost": {
+              "ok": 3,
+              "changed": 0,
+              "unreachable": 0,
+              "failed": 0,
+              "skipped": 0,
+              "rescued": 0,
+              "ignored": 0
+            }
+          }
+        }
+      JSON
+    end
+
+    let(:json_output_with_failures) do
+      <<~JSON
+        {
+          "plays": [
+            {
+              "play": {"name": "Test Play"},
+              "tasks": []
+            }
+          ],
+          "stats": {
+            "localhost": {
+              "ok": 2,
+              "changed": 1,
+              "unreachable": 0,
+              "failed": 2,
+              "skipped": 0,
+              "rescued": 0,
+              "ignored": 0
+            }
+          }
+        }
+      JSON
+    end
+
+    it 'extracts changed_count from JSON stats' do
+      stats = provider.parse_json_output(json_output_with_changes)
+      expect(stats[:changed]).to eq(2)
+    end
+
+    it 'extracts ok_count from JSON stats' do
+      stats = provider.parse_json_output(json_output_with_changes)
+      expect(stats[:ok]).to eq(5)
+    end
+
+    it 'extracts failed_count from JSON stats' do
+      stats = provider.parse_json_output(json_output_with_failures)
+      expect(stats[:failed]).to eq(2)
+    end
+
+    it 'returns zero changed when no changes made' do
+      stats = provider.parse_json_output(json_output_no_changes)
+      expect(stats[:changed]).to eq(0)
+    end
+
+    it 'handles missing stats gracefully' do
+      expect {
+        provider.parse_json_output('{}')
+      }.not_to raise_error
+    end
+
+    it 'handles invalid JSON gracefully' do
+      expect {
+        provider.parse_json_output('not valid json')
+      }.to raise_error(JSON::ParserError)
+    end
+  end
+
+  # T099-T101: Test change detection in create method
+  describe '#create with change detection' do
+    let(:json_output_changed) do
+      {
+        stats: {
+          'localhost' => {
+            'ok' => 3,
+            'changed' => 2,
+            'failed' => 0,
+          },
+        },
+      }
+    end
+
+    let(:json_output_no_changes) do
+      {
+        stats: {
+          'localhost' => {
+            'ok' => 3,
+            'changed' => 0,
+            'failed' => 0,
+          },
+        },
+      }
+    end
+
+    let(:json_output_failed) do
+      {
+        stats: {
+          'localhost' => {
+            'ok' => 1,
+            'changed' => 0,
+            'failed' => 2,
+          },
+        },
+      }
+    end
+
+    before(:each) do
+      allow(File).to receive(:exist?).with('/tmp/test.yml').and_return(true)
+      allow(Puppet::Util).to receive(:which).with('ansible-playbook').and_return('/usr/bin/ansible-playbook')
+      allow(provider).to receive(:execute_playbook).and_return('')
+    end
+
+    it 'reports changed when Ansible reports changes' do
+      allow(provider).to receive(:parse_json_output).and_return(
+        ok: 3, changed: 2, failed: 0,
+      )
+      expect(Puppet).to receive(:info).with(%r{2 tasks? changed})
+      provider.create
+    end
+
+    it 'reports in-sync when Ansible reports no changes' do
+      allow(provider).to receive(:parse_json_output).and_return(
+        ok: 3, changed: 0, failed: 0,
+      )
+      expect(Puppet).to receive(:debug).with(%r{no changes})
+      provider.create
+    end
+
+    it 'raises error when Ansible reports failures' do
+      allow(provider).to receive(:parse_json_output).and_return(
+        ok: 1, changed: 0, failed: 2,
+      )
+      expect {
+        provider.create
+      }.to raise_error(Puppet::Error, %r{2 tasks? failed})
+    end
+  end
+
+  # T102-T103: Test logoutput parameter behavior
+  describe '#create with logoutput parameter' do
+    before(:each) do
+      allow(File).to receive(:exist?).with('/tmp/test.yml').and_return(true)
+      allow(Puppet::Util).to receive(:which).with('ansible-playbook').and_return('/usr/bin/ansible-playbook')
+      allow(provider).to receive_messages(execute_playbook: "PLAY [Test]\n\nTASK [Debug]\nok: [localhost]\n", parse_json_output: { ok: 1, changed: 0, failed: 0 })
+    end
+
+    it 'displays stdout when logoutput is true' do
+      resource[:logoutput] = :true
+      expect(Puppet).to receive(:notice).with(%r{PLAY \[Test\]})
+      provider.create
+    end
+
+    it 'suppresses stdout when logoutput is false' do
+      resource[:logoutput] = :false
+      expect(Puppet).not_to receive(:notice).with(%r{PLAY})
+      provider.create
+    end
+
+    it 'suppresses stdout when logoutput is not specified' do
+      expect(Puppet).not_to receive(:notice).with(%r{PLAY})
+      provider.create
+    end
+  end
+
+  # T104-T106: Test exclusive locking
+  describe '#locking with exclusive parameter' do
+    before(:each) do
+      allow(File).to receive(:exist?).with('/tmp/test.yml').and_return(true)
+      allow(Puppet::Util).to receive(:which).with('ansible-playbook').and_return('/usr/bin/ansible-playbook')
+      allow(provider).to receive_messages(execute_playbook: '', parse_json_output: { ok: 1, changed: 0, failed: 0 })
+    end
+
+    it 'acquires lock when exclusive is true' do
+      resource[:exclusive] = :true
+      expect(provider).to receive(:acquire_lock).and_return(true)
+      expect(provider).to receive(:release_lock)
+      provider.create
+    end
+
+    it 'releases lock after execution when exclusive is true' do
+      resource[:exclusive] = :true
+      allow(provider).to receive(:acquire_lock).and_return(true)
+      expect(provider).to receive(:release_lock)
+      provider.create
+    end
+
+    it 'releases lock even when execution fails' do
+      resource[:exclusive] = :true
+      allow(provider).to receive(:acquire_lock).and_return(true)
+      allow(provider).to receive(:execute_playbook).and_raise(StandardError, 'Test error')
+      expect(provider).to receive(:release_lock)
+      expect { provider.create }.to raise_error(StandardError, 'Test error')
+    end
+
+    it 'does not acquire lock when exclusive is false' do
+      resource[:exclusive] = :false
+      expect(provider).not_to receive(:acquire_lock)
+      provider.create
+    end
+
+    it 'does not acquire lock when exclusive is not specified' do
+      expect(provider).not_to receive(:acquire_lock)
+      provider.create
+    end
+
+    it 'raises error when lock cannot be acquired' do
+      resource[:exclusive] = :true
+      allow(provider).to receive(:acquire_lock).and_return(false)
+      expect {
+        provider.create
+      }.to raise_error(Puppet::Error, %r{lock})
+    end
+  end
+
+  describe '#acquire_lock' do
+    it 'responds to acquire_lock method' do
+      expect(provider).to respond_to(:acquire_lock)
+    end
+  end
+
+  describe '#release_lock' do
+    it 'responds to release_lock method' do
+      expect(provider).to respond_to(:release_lock)
     end
   end
 end

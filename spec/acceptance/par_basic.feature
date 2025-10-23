@@ -11,7 +11,8 @@ Feature: Basic PAR Playbook Execution
     Given a Puppet manifest with PAR resource:
       """
       par { 'test-basic':
-        playbook => '/tmp/aruba/playbooks/simple.yml',
+        playbook  => '/tmp/aruba/playbooks/simple.yml',
+        logoutput => true,
       }
       """
     When I apply the manifest
@@ -60,7 +61,8 @@ Feature: Basic PAR Playbook Execution
     And a Puppet manifest with PAR resource:
       """
       par { 'hello-test':
-        playbook => '/tmp/aruba/playbooks/test-hello.yml',
+        playbook  => '/tmp/aruba/playbooks/test-hello.yml',
+        logoutput => true,
       }
       """
     When I apply the manifest
@@ -82,11 +84,13 @@ Feature: Basic PAR Playbook Execution
     Given a Puppet manifest with PAR resources:
       """
       par { 'first-playbook':
-        playbook => '/tmp/aruba/playbooks/simple.yml',
+        playbook  => '/tmp/aruba/playbooks/simple.yml',
+        logoutput => true,
       }
       
       par { 'second-playbook':
-        playbook => '/tmp/aruba/playbooks/simple.yml',
+        playbook  => '/tmp/aruba/playbooks/simple.yml',
+        logoutput => true,
       }
       """
     When I apply the manifest

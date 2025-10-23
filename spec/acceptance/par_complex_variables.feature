@@ -29,6 +29,7 @@ Feature: PAR Complex Playbook Variables
       """
       par { 'test-nested-hash':
         playbook      => '/tmp/aruba/playbooks/nested-hash.yml',
+        logoutput     => true,
         playbook_vars => {
           'database' => {
             'host' => 'localhost',
@@ -75,6 +76,7 @@ Feature: PAR Complex Playbook Variables
       """
       par { 'test-arrays':
         playbook      => '/tmp/aruba/playbooks/array-vars.yml',
+        logoutput     => true,
         playbook_vars => {
           'servers' => ['web1', 'web2', 'web3'],
           'ports'   => [80, 443, 8080],
@@ -120,6 +122,7 @@ Feature: PAR Complex Playbook Variables
       """
       par { 'test-deep-nested':
         playbook      => '/tmp/aruba/playbooks/deep-nested.yml',
+        logoutput     => true,
         playbook_vars => {
           'app' => {
             'name'    => 'myapp',
@@ -174,6 +177,7 @@ Feature: PAR Complex Playbook Variables
       """
       par { 'test-mixed':
         playbook      => '/tmp/aruba/playbooks/mixed-vars.yml',
+        logoutput     => true,
         playbook_vars => {
           'env'     => 'production',
           'version' => '1.5.0',
@@ -210,6 +214,7 @@ Feature: PAR Complex Playbook Variables
       """
       par { 'test-array-hashes':
         playbook      => '/tmp/aruba/playbooks/array-of-hashes.yml',
+        logoutput     => true,
         playbook_vars => {
           'users' => [
             { 'name' => 'admin', 'role' => 'administrator' },
@@ -247,6 +252,7 @@ Feature: PAR Complex Playbook Variables
       """
       par { 'test-mixed-types':
         playbook      => '/tmp/aruba/playbooks/mixed-types.yml',
+        logoutput     => true,
         playbook_vars => {
           'service' => {
             'name'    => 'webserver',

@@ -212,17 +212,23 @@ Puppet::Type.type(:par).provide(:par) do
   #   Creates (applies) the PAR resource by executing the Ansible playbook.
   #
   #   This is the main method called by Puppet when ensure => present. It performs
-  #   validation, handles noop mode, and executes the playbook.
+  #   validation, handles noop mode, executes the playbook, and manages exclusive
+  #   locking when requested.
   #
   #   Workflow:
   #   1. Validates ansible-playbook is available in PATH
   #   2. Validates playbook file exists
-  #   3. If in noop mode: logs what would be executed and returns
-  #   4. If not in noop mode: executes the playbook via execute_playbook
+  #   3. Acquires exclusive lock if exclusive parameter is true
+  #   4. If in noop mode: logs what would be executed and returns
+  #   5. If not in noop mode: executes the playbook via execute_playbook
+  #   6. Parses output and reports changes/failures
+  #   7. Releases lock in ensure block (if acquired)
   #
   #   Error Handling:
   #   - Raises Puppet::Error if ansible-playbook not found in PATH
   #   - Raises Puppet::Error if playbook file does not exist
+  #   - Raises Puppet::Error if exclusive lock cannot be acquired
+  #   - Raises Puppet::Error if playbook execution fails
   #
   #   Note: This method always runs when ensure => present (similar to exec resources).
   #   Idempotency is handled by Ansible's own change detection mechanisms.
@@ -230,6 +236,8 @@ Puppet::Type.type(:par).provide(:par) do
   #   @return [void]
   #   @raise [Puppet::Error] if ansible-playbook is not available
   #   @raise [Puppet::Error] if playbook file does not exist
+  #   @raise [Puppet::Error] if exclusive lock cannot be acquired
+  #   @raise [Puppet::Error] if playbook execution fails
   #
   #   @example Normal execution
   #     provider.create #=> Executes playbook
@@ -237,6 +245,10 @@ Puppet::Type.type(:par).provide(:par) do
   #   @example Noop mode
   #     # With --noop flag
   #     provider.create #=> Logs command, does not execute
+  #
+  #   @example Exclusive locking
+  #     # With exclusive => true
+  #     provider.create #=> Acquires lock, executes, releases lock
   #
   def create
     playbook_path = resource[:playbook]
@@ -251,6 +263,13 @@ Puppet::Type.type(:par).provide(:par) do
       raise Puppet::Error, "Playbook file not found: #{playbook_path}"
     end
 
+    # Acquire exclusive lock if requested
+    if resource[:exclusive] == :true
+      unless acquire_lock
+        raise Puppet::Error, "Could not acquire exclusive lock for playbook: #{playbook_path}"
+      end
+    end
+
     # Handle noop mode
     if resource.noop?
       command = build_command
@@ -258,8 +277,140 @@ Puppet::Type.type(:par).provide(:par) do
       return
     end
 
-    # Execute the playbook
-    execute_playbook
+    # Execute the playbook and get output
+    output = execute_playbook
+
+    # Parse JSON output to get execution statistics
+    stats = parse_json_output(output)
+
+    # Handle logoutput parameter - display full output if requested
+    if resource[:logoutput] == :true
+      Puppet.notice("Ansible playbook execution output:\n#{output}")
+    end
+
+    # Check for failures and raise error if any tasks failed
+    if stats[:failed] > 0
+      task_word = (stats[:failed] == 1) ? 'task' : 'tasks'
+      raise Puppet::Error, "Ansible playbook execution failed: #{stats[:failed]} #{task_word} failed"
+    end
+
+    # Log appropriate message based on change detection
+    if stats[:changed] > 0
+      task_word = (stats[:changed] == 1) ? 'task' : 'tasks'
+      Puppet.info("Ansible playbook execution completed: #{stats[:changed]} #{task_word} changed")
+    else
+      Puppet.debug('Ansible playbook execution completed with no changes (idempotent run)')
+    end
+  ensure
+    # Always release lock if it was acquired
+    release_lock if resource[:exclusive] == :true
+  end
+
+  # @!method parse_json_output
+  #   Parses Ansible JSON output to extract execution statistics.
+  #
+  #   This method parses the JSON output from ansible-playbook when using
+  #   the 'json' stdout callback. It extracts the stats section which contains
+  #   information about task execution results.
+  #
+  #   The stats section includes counts for:
+  #   - ok: Tasks that succeeded without changes
+  #   - changed: Tasks that made changes to the system
+  #   - failed: Tasks that failed
+  #   - unreachable: Hosts that were unreachable
+  #   - skipped: Tasks that were skipped
+  #
+  #   @param output [String] The JSON output from ansible-playbook
+  #   @return [Hash] A hash containing :ok, :changed, and :failed counts
+  #   @raise [JSON::ParserError] if output is not valid JSON
+  #
+  #   @example Parse successful run with changes
+  #     json = '{"stats": {"localhost": {"ok": 3, "changed": 2, "failed": 0}}}'
+  #     stats = parse_json_output(json)
+  #     stats[:changed] #=> 2
+  #     stats[:ok] #=> 3
+  #     stats[:failed] #=> 0
+  #
+  #   @example Parse idempotent run (no changes)
+  #     json = '{"stats": {"localhost": {"ok": 3, "changed": 0, "failed": 0}}}'
+  #     stats = parse_json_output(json)
+  #     stats[:changed] #=> 0
+  #
+  def parse_json_output(output)
+    require 'json'
+
+    # Ansible may output warnings before the JSON
+    # Extract only the JSON portion (starts with '{' and ends with '}')
+    json_start = output.index('{')
+    json_end = output.rindex('}')
+
+    if json_start && json_end && json_end >= json_start
+      json_content = output[json_start..json_end]
+      data = JSON.parse(json_content)
+    else
+      # If we can't find JSON markers, try parsing the whole thing
+      data = JSON.parse(output)
+    end
+
+    # Extract stats for localhost
+    # Ansible JSON output structure: {"stats": {"localhost": {...}}}
+    stats = data.dig('stats', 'localhost') || {}
+
+    {
+      ok: stats['ok'] || 0,
+      changed: stats['changed'] || 0,
+      failed: stats['failed'] || 0,
+    }
+  end
+
+  # @!method acquire_lock
+  #   Acquires an exclusive lock for playbook execution.
+  #
+  #   This method creates a lock file to prevent concurrent execution of the
+  #   same playbook when the `exclusive` parameter is set to true. The lock
+  #   is based on the playbook file path to ensure only one instance of a
+  #   specific playbook runs at a time.
+  #
+  #   The lock file path is derived from the playbook path by appending '.lock'
+  #   to the playbook filename. The lock is implemented using Puppet::Util::Lockfile,
+  #   which provides cross-platform file locking.
+  #
+  #   Lock file location: <playbook_path>.lock
+  #   Example: /etc/ansible/playbooks/webserver.yml.lock
+  #
+  #   @return [Boolean] true if lock was successfully acquired, false otherwise
+  #
+  #   @example Acquire lock for a playbook
+  #     provider.acquire_lock #=> true (if lock acquired)
+  #     provider.acquire_lock #=> false (if already locked)
+  #
+  def acquire_lock
+    require 'puppet/util/lockfile'
+
+    playbook_path = resource[:playbook]
+    lock_path = "#{playbook_path}.lock"
+
+    @lockfile = Puppet::Util::Lockfile.new(lock_path)
+    @lockfile.lock
+  end
+
+  # @!method release_lock
+  #   Releases the exclusive lock acquired by acquire_lock.
+  #
+  #   This method releases the lock file created during acquire_lock. It should
+  #   be called after playbook execution completes, whether successful or not.
+  #   Typically called from an ensure block to guarantee cleanup.
+  #
+  #   The method safely handles cases where no lock was acquired (lockfile is nil),
+  #   making it safe to call unconditionally in ensure blocks.
+  #
+  #   @return [void]
+  #
+  #   @example Release lock after execution
+  #     provider.release_lock
+  #
+  def release_lock
+    @lockfile&.unlock
   end
 
   private
@@ -276,33 +427,38 @@ Puppet::Type.type(:par).provide(:par) do
   #   - Sets LC_ALL and LANG environment variables to en_US.UTF-8 (required by Ansible)
   #   - Executes using Puppet::Util::Execution.execute
   #   - Combines stdout and stderr for unified output
-  #   - Logs all output to Puppet's log
+  #   - Returns output for parsing by create method
   #   - Raises Puppet::ExecutionFailure on non-zero exit codes
   #
   #   Implementation Details:
   #   - `failonfail: true` ensures non-zero exit codes raise exceptions
   #   - `combine: true` merges stdout and stderr for unified logging
   #   - `custom_environment:` provides UTF-8 locale required by Ansible
-  #   - All output is logged to Puppet's notice level for visibility
-  #   - Ansible's own exit codes determine success/failure
+  #   - ANSIBLE_STDOUT_CALLBACK=json enables JSON output format
+  #   - Output is returned to caller for parsing and conditional logging
   #
-  #   @return [void]
+  #   @return [String] The JSON output from ansible-playbook execution
   #   @raise [Puppet::ExecutionFailure] if ansible-playbook exits with non-zero status
   #
   #   @api private
   #
   #   @example Internal usage
-  #     execute_playbook # Called by create method
+  #     output = execute_playbook # Called by create method
   #
   def execute_playbook
     command = build_command
 
     # Build environment hash with proper locale settings for Ansible
     # Ansible requires UTF-8 locale encoding to function properly
+    # ANSIBLE_STDOUT_CALLBACK=json enables JSON output for parsing
     custom_env = ENV.to_h.merge(
       'LC_ALL' => 'en_US.UTF-8',
       'LANG' => 'en_US.UTF-8',
+      'ANSIBLE_STDOUT_CALLBACK' => 'json',
     )
+
+    # Merge any user-specified environment variables
+    custom_env.merge!(resource[:environment]) if resource[:environment]
 
     output = Puppet::Util::Execution.execute(
       command,
@@ -311,6 +467,7 @@ Puppet::Type.type(:par).provide(:par) do
       custom_environment: custom_env,
     )
 
-    Puppet.notice("Ansible playbook execution output:\n#{output}")
+    # Return output for parsing and conditional logging by caller
+    output
   end
 end
