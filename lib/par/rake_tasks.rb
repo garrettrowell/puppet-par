@@ -18,10 +18,14 @@ if Gem.loaded_specs.key?('cucumber')
   require 'cucumber/rake/task'
 
   namespace :acceptance do
-    desc 'Run Cucumber acceptance tests'
+    desc 'Run Cucumber acceptance tests (use FEATURE=path/to/feature.feature for specific test)'
     Cucumber::Rake::Task.new(:cucumber) do |t|
+      # Allow running specific feature with FEATURE environment variable
+      # Example: rake acceptance FEATURE=spec/acceptance/par_basic.feature
+      feature_path = ENV['FEATURE'] || 'spec/acceptance'
+
       t.cucumber_opts = [
-        'spec/acceptance',
+        feature_path,
         '--require', 'spec/acceptance/step_definitions',
         '--require', 'spec/acceptance/support',
         '--format', 'pretty'
@@ -30,8 +34,10 @@ if Gem.loaded_specs.key?('cucumber')
 
     desc 'Run Cucumber acceptance tests with HTML report'
     Cucumber::Rake::Task.new(:html) do |t|
+      feature_path = ENV['FEATURE'] || 'spec/acceptance'
+
       t.cucumber_opts = [
-        'spec/acceptance',
+        feature_path,
         '--require', 'spec/acceptance/step_definitions',
         '--require', 'spec/acceptance/support',
         '--format', 'pretty',
@@ -41,7 +47,7 @@ if Gem.loaded_specs.key?('cucumber')
     end
   end
 
-  desc 'Run all acceptance tests (Cucumber)'
+  desc 'Run all acceptance tests (Cucumber) - use FEATURE=path for specific test'
   task acceptance: 'acceptance:cucumber'
 
   puts 'PAR custom rake tasks loaded (acceptance tests available)'

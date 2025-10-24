@@ -62,8 +62,10 @@ Default value: `present`
 The following parameters are available in the `par` type.
 
 * [`check_mode`](#-par--check_mode)
-* [`environment`](#-par--environment)
+* [`env_vars`](#-par--env_vars)
+* [`exclusive`](#-par--exclusive)
 * [`limit`](#-par--limit)
+* [`logoutput`](#-par--logoutput)
 * [`name`](#-par--name)
 * [`playbook`](#-par--playbook)
 * [`playbook_vars`](#-par--playbook_vars)
@@ -77,7 +79,7 @@ The following parameters are available in the `par` type.
 
 ##### <a name="-par--check_mode"></a>`check_mode`
 
-Valid values: `true`, `false`, `yes`, `no`
+Valid values: `true`, `false`
 
 Run Ansible in check mode (dry-run) (optional).
 
@@ -95,7 +97,7 @@ enables Ansible's own check mode during normal Puppet runs.
     check_mode => true,
   }
 
-##### <a name="-par--environment"></a>`environment`
+##### <a name="-par--env_vars"></a>`env_vars`
 
 Additional environment variables for ansible-playbook execution (optional).
 
@@ -111,12 +113,64 @@ Common Ansible environment variables include:
 
 @example Set Ansible environment variables
   par { 'custom-config':
-    playbook    => '/etc/ansible/playbooks/deploy.yml',
-    environment => {
-      'ANSIBLE_FORCE_COLOR'        => 'true',
-      'ANSIBLE_HOST_KEY_CHECKING'  => 'false',
+    playbook => '/etc/ansible/playbooks/deploy.yml',
+    env_vars => {
+      'ANSIBLE_FORCE_COLOR'       => 'true',
+      'ANSIBLE_HOST_KEY_CHECKING' => 'false',
     },
   }
+
+##### <a name="-par--exclusive"></a>`exclusive`
+
+Valid values: `true`, `false`
+
+Serialize playbook execution using a lock file (optional).
+
+When set to true, PAR will acquire an exclusive lock before executing the
+playbook and release it after completion. This prevents multiple PAR resources
+from executing playbooks concurrently, which can be useful when:
+
+- Playbooks modify shared resources that could cause conflicts
+- System resources (CPU, memory, I/O) would be overwhelmed by concurrent runs
+- Playbooks need to run in a specific sequence
+- You want to prevent race conditions between multiple Ansible executions
+
+The lock is implemented using Puppet's built-in locking mechanism and is stored
+in Puppet's state directory. If a lock cannot be acquired (because another PAR
+resource is currently executing), the resource will fail with an error.
+
+Default: false (no locking, playbooks can run concurrently)
+
+Important: The lock is per-node, not per-playbook. If you need finer-grained
+locking, consider using Ansible's own locking mechanisms or orchestrating
+execution order through Puppet resource dependencies.
+
+@example Enable exclusive execution
+  par { 'critical-deployment':
+    playbook  => '/etc/ansible/playbooks/deploy.yml',
+    exclusive => true,
+  }
+
+@example Allow concurrent execution (default)
+  par { 'routine-maintenance':
+    playbook  => '/etc/ansible/playbooks/maintenance.yml',
+    exclusive => false,
+  }
+
+@example Multiple resources with selective locking
+  # This will run with locking
+  par { 'database-migration':
+    playbook  => '/etc/ansible/playbooks/db-migrate.yml',
+    exclusive => true,
+  }
+
+  # This can run concurrently (no lock needed)
+  par { 'log-rotation':
+    playbook  => '/etc/ansible/playbooks/logrotate.yml',
+    exclusive => false,
+  }
+
+Default value: `false`
 
 ##### <a name="-par--limit"></a>`limit`
 
@@ -140,6 +194,45 @@ can be used with more complex patterns if your playbook targets multiple hosts.
     playbook => '/etc/ansible/playbooks/deploy.yml',
     limit    => 'web*:db*',
   }
+
+##### <a name="-par--logoutput"></a>`logoutput`
+
+Valid values: `true`, `false`
+
+Control whether playbook output is displayed in Puppet logs (optional).
+
+When set to true, the full output from ansible-playbook execution will be
+displayed in Puppet's notice log level. When set to false or omitted, only
+summary information (changed/ok/failed task counts) will be logged.
+
+This parameter is useful for debugging playbook execution or when you want
+to see detailed Ansible output in your Puppet logs. However, verbose output
+can clutter logs for routine operations.
+
+Default: false (output suppressed, only summaries shown)
+
+Note: Regardless of this setting, errors and failures will always be logged
+to help with troubleshooting.
+
+@example Show detailed playbook output
+  par { 'debug-deployment':
+    playbook  => '/etc/ansible/playbooks/deploy.yml',
+    logoutput => true,
+  }
+
+@example Suppress detailed output (default behavior)
+  par { 'routine-task':
+    playbook  => '/etc/ansible/playbooks/maintenance.yml',
+    logoutput => false,
+  }
+
+@example Omit parameter for default behavior
+  par { 'simple-task':
+    playbook => '/etc/ansible/playbooks/task.yml',
+    # logoutput defaults to false
+  }
+
+Default value: `false`
 
 ##### <a name="-par--name"></a>`name`
 
@@ -341,7 +434,7 @@ to remote hosts.
 
 ##### <a name="-par--verbose"></a>`verbose`
 
-Valid values: `true`, `false`, `yes`, `no`
+Valid values: `true`, `false`
 
 Enable verbose output from Ansible (optional).
 

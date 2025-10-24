@@ -1,17 +1,22 @@
 # par Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-10-22
+Auto-generated from all feature plans. Last updated: 2025-10-24
 
 ## Active Technologies
-- N/A (stateless provider that executes commands) (001-ansible-playbook-runner)
-
-- Ruby 2.7+ (compatible with Puppet 7.24+) + Puppet 7.24+ (core framework for custom types/providers), Ansible (external dependency, assumed pre-installed) (001-ansible-playbook-runner)
+- Ruby 2.7+ (compatible with Puppet 7.24+) + Puppet 7.24+ (core framework for custom types/providers)
+- Ansible (external dependency, assumed pre-installed)
+- RSpec with rspec-puppet-facts for multi-platform testing
 
 ## Project Structure
 
 ```text
-src/
-tests/
+lib/puppet/type/par.rb          - Custom type definition
+lib/puppet/provider/par/par.rb  - Provider implementation
+spec/types/par_spec.rb          - Type unit tests
+spec/unit/providers/par_spec.rb - Provider unit tests
+spec/support/                    - Shared test contexts (windows_cross_compatibility)
+spec/spec_helper_local.rb       - PDK-safe local RSpec configuration
+examples/                        - Example manifests (9 total)
 ```
 
 ## Commands
@@ -19,8 +24,16 @@ tests/
 # PDK Commands
 - `pdk validate` - Run all validators (metadata, puppet, ruby, yaml)
 - `pdk test unit` - Run RSpec unit tests
-- `pdk bundle exec rake acceptance` - Run Cucumber acceptance tests
+- `pdk bundle exec rake acceptance` - Run Cucumber acceptance tests (all scenarios)
+- `pdk bundle exec rake acceptance FEATURE=spec/acceptance/par_basic.feature` - Run specific feature file
 - `pdk bundle exec rake spec` - Run RSpec unit tests (alternative)
+
+# Cucumber Test Rules
+- ❌ **NEVER** run `cucumber` command directly
+- ❌ **NEVER** run `pdk bundle exec cucumber` directly
+- ✅ **ALWAYS** use `pdk bundle exec rake acceptance` for acceptance tests
+- ✅ Use FEATURE environment variable to run individual features when debugging
+- ✅ The rake task properly configures step definitions and support files
 
 # Development Workflow
 1. Make changes to code
@@ -48,7 +61,8 @@ All changes must pass the following validation steps:
 2. **Unit Tests**: `pdk test unit`
    - All RSpec unit tests must pass
    - Tests for types, providers, and internal logic
-   - Current status: 115+ examples passing
+   - Current status: 2,481 examples across 16 platforms (100% pass rate)
+   - Multi-platform testing validates Windows, RHEL-family, and Debian-family systems
 
 3. **Acceptance Tests**: `pdk bundle exec rake acceptance`
    - All Cucumber acceptance tests must pass
@@ -60,7 +74,7 @@ All changes must pass the following validation steps:
    - All example manifests must successfully apply
    - Examples must demonstrate actual working functionality
    - Use `puppet apply --libdir=lib examples/FILENAME.pp` to test each example
-   - Examples: basic.pp, noop.pp, with_vars.pp, tags.pp, timeout.pp
+   - Examples: basic.pp, noop.pp, with_vars.pp, tags.pp, timeout.pp, idempotent.pp, logoutput.pp, exclusive.pp, init.pp
    - Noop example requires: `puppet apply --libdir=lib --noop examples/noop.pp`
    - All examples must complete without errors
 
@@ -88,9 +102,11 @@ If RuboCop reports conventions or warnings, fix them immediately.
 No exceptions. No shortcuts. No compromises. No "optional" issues.
 
 ## Recent Changes
-- 001-ansible-playbook-runner: Added Ruby 2.7+ (compatible with Puppet 7.24+) + Puppet 7.24+ (core framework for custom types/providers), Ansible (external dependency, assumed pre-installed)
-
-- 001-ansible-playbook-runner: Added Ruby 2.7+ (compatible with Puppet 7.24+) + Puppet 7.24+ (core framework for custom types/providers), Ansible (external dependency, assumed pre-installed)
+- 001-ansible-playbook-runner: Completed all phases (P1-P3) with comprehensive testing
+- Added multi-platform testing support (16 OS platforms)
+- Implemented change detection and idempotency reporting
+- Added Windows cross-compatibility testing infrastructure
+- All validation gates passing: 2,481 unit tests, 18 acceptance scenarios, 9 examples
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

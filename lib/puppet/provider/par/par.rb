@@ -27,15 +27,22 @@ Puppet::Type.type(:par).provide(:par) do
     - Validates ansible-playbook is available in PATH
     - Checks playbook file existence before execution
     - Supports Puppet noop mode (--noop flag)
+    - **Change detection**: Parses Ansible JSON output to report changes accurately
+    - **Idempotency**: Shows "created" only when Ansible reports changes
+    - **Exclusive locking**: Prevents concurrent execution with exclusive parameter
+    - **Output control**: Display full Ansible output with logoutput parameter
     - Provides detailed error messages for common issues
     - Logs ansible-playbook output to Puppet's log
 
-    The provider follows Puppet's standard resource workflow:
-    1. exists? - Checks if playbook file exists
-    2. create - Executes the playbook (always runs when ensure => present)
+    The provider follows an always-run model with smart change detection:
+    1. exists? - Executes playbook and caches results, returns true if idempotent (no changes)
+    2. create - Called only when changes occurred, reports the changes to Puppet
 
-    Note: Unlike most Puppet resources, PAR executes every time (similar to exec).
-    Idempotency is handled by Ansible's own change detection mechanisms.
+    This approach ensures:
+    - Playbook always executes to check current state
+    - Puppet shows "created" only when Ansible makes changes
+    - Idempotent playbooks don't show "created" on subsequent runs
+    - Change detection is based on Ansible's own reporting (accurate)
 
     Requirements:
     - ansible-playbook must be in PATH
@@ -73,6 +80,14 @@ Puppet::Type.type(:par).provide(:par) do
     # Execute the playbook and cache the results
     @execution_output = execute_playbook_with_validation
     @execution_stats = parse_json_output(@execution_output)
+
+    # Handle logoutput parameter even when idempotent
+    # This ensures output is displayed regardless of whether changes occurred
+    if resource[:logoutput] == :true && @execution_stats[:changed].zero?
+      Puppet.notice("Ansible playbook execution output:\n#{@execution_output}")
+      # Log completion message for idempotent runs
+      Puppet.info('Ansible playbook execution completed: 0 tasks changed (idempotent)')
+    end
 
     # Return true if no changes (idempotent), false if changes were made
     # This causes Puppet to call create() only when changes occurred
@@ -495,7 +510,7 @@ Puppet::Type.type(:par).provide(:par) do
     )
 
     # Merge any user-specified environment variables
-    custom_env.merge!(resource[:environment]) if resource[:environment]
+    custom_env.merge!(resource[:env_vars]) if resource[:env_vars]
 
     output = Puppet::Util::Execution.execute(
       command,

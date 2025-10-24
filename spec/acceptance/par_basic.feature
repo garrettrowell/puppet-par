@@ -73,12 +73,13 @@ Feature: Basic PAR Playbook Execution
     Given a Puppet manifest with PAR resource:
       """
       par { 'setup-webserver':
-        playbook => '/tmp/aruba/playbooks/simple.yml',
+        playbook  => '/tmp/aruba/playbooks/simple.yml',
+        logoutput => true,
       }
       """
     When I apply the manifest
     Then the Puppet run should succeed
-    And the output should contain "Par[setup-webserver]"
+    And the output should contain "Ansible playbook execution"
 
   Scenario: Multiple playbook executions in sequence
     Given a Puppet manifest with PAR resources:

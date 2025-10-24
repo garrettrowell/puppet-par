@@ -11,8 +11,14 @@ PAR (Puppet Ansible Runner) - Execute Ansible playbooks through Puppet
     * [Beginning with par](#beginning-with-par)
 1. [Usage - Configuration options and additional functionality](#usage)
 1. [Reference - Types and parameters](#reference)
+    * [Quick Reference](#quick-reference)
 1. [Limitations - OS compatibility, etc.](#limitations)
+    * [Platform Support](#platform-support)
+    * [Known Issues](#known-issues)
 1. [Development - Guide for contributing to the module](#development)
+    * [Running Tests](#running-tests)
+    * [Contributing](#contributing)
+1. [Release Notes](#release-notes)
 
 ## Description
 
@@ -24,9 +30,10 @@ Key features:
 - Supports Puppet noop mode for dry-run testing
 - Automatic dependency management with File resources
 - Comprehensive error handling and validation
-- Idempotency handled by Ansible's change detection
-
-**Note**: This module provides comprehensive playbook execution functionality including variable passing, configuration options (tags, limits, verbosity, etc.), and timeout handling. Change detection based on Ansible output parsing is planned for future releases.
+- Change detection via Ansible JSON output parsing
+- Idempotency reporting (shows "created" only when changes occur)
+- Exclusive locking to prevent concurrent playbook execution
+- Full output control with `logoutput` parameter
 
 ## Setup
 
@@ -50,9 +57,11 @@ Key features:
 
 ### Beginning with par
 
-1. Install the module:
-   ```
-   puppet module install garrettrowell-par
+1. Install the module by adding it to your `Puppetfile`:
+   ```ruby
+   mod 'par',
+     git: 'git@github.com:garrettrowell/puppet-par.git',
+     tag: '0.1.0'
    ```
 
 2. Ensure Ansible is installed on your nodes:
@@ -78,6 +87,17 @@ Key features:
    ```
 
 ## Usage
+
+For complete working examples, see the [examples/](examples/) directory which includes:
+- `basic.pp` - Simple playbook execution
+- `with_vars.pp` - Passing variables to playbooks
+- `tags.pp` - Using tags for selective execution
+- `timeout.pp` - Timeout and exclusive locking
+- `idempotent.pp` - Change detection demonstration
+- `logoutput.pp` - Output control
+- `exclusive.pp` - Exclusive locking
+- `noop.pp` - Noop mode testing
+- `init.pp` - Comprehensive example with all parameters
 
 ### Basic playbook execution
 
@@ -112,13 +132,15 @@ par { 'run-database-tasks':
 }
 ```
 
-### With timeout
+### With timeout and exclusive locking
 
 ```puppet
-par { 'long-running-playbook':
-  ensure   => present,
-  playbook => '/etc/ansible/playbooks/migration.yml',
-  timeout  => 600, # 10 minutes
+par { 'critical-deployment':
+  ensure    => present,
+  playbook  => '/etc/ansible/playbooks/deploy.yml',
+  timeout   => 600,      # 10 minutes max
+  exclusive => true,     # Prevent concurrent execution
+  logoutput => true,     # Display full Ansible output
 }
 ```
 
@@ -146,12 +168,39 @@ par { 'configure-database':
 puppet apply --noop mymanifest.pp
 ```
 
+### Change detection and idempotency
+
+PAR automatically detects changes made by Ansible playbooks:
+
+```puppet
+# First run: Creates files, Puppet shows "ensure: created"
+# Second run: Files exist, NO "created" message (idempotent)
+par { 'idempotent-config':
+  ensure   => present,
+  playbook => '/etc/ansible/playbooks/config.yml',
+}
+```
+
+When a playbook makes changes (Ansible reports `changed > 0`), Puppet shows:
+```
+Notice: /Stage[main]/Main/Par[idempotent-config]/ensure: created
+Info: Ansible playbook execution completed: 2 tasks changed
+```
+
+When a playbook is idempotent (no changes needed), Puppet shows:
+```
+Notice: Applied catalog in X.XX seconds
+```
+(No "created" message - resource is already in desired state)
+
 ### Important behavior notes
 
-- **Always executes**: PAR resources run every time Puppet applies the catalog (similar to `exec` resources)
-- **Idempotency**: Managed by Ansible's own change detection within playbooks
+- **Change detection**: PAR executes playbooks and reports "created" only when Ansible reports changes
+- **Idempotency**: First run may show "created", subsequent runs won't if playbook is idempotent
+- **Always executes**: Playbook runs every time to check for changes (similar to Ansible's model)
 - **Localhost only**: Playbooks should target localhost with `connection: local`
 - **UTF-8 locale**: Provider automatically sets LC_ALL and LANG environment variables for Ansible compatibility
+- **Exclusive locking**: Use `exclusive => true` to prevent concurrent execution of the same playbook
 
 ## Reference
 
@@ -173,17 +222,14 @@ See [REFERENCE.md](REFERENCE.md) for detailed API documentation.
 - `check_mode` - Boolean to run playbook in check mode
 - `timeout` - Maximum execution time in seconds
 - `user` - User to run ansible-playbook as
-- `environment` - Hash of environment variables
+- `env_vars` - Hash of environment variables
+- `logoutput` - Boolean to display full Ansible output (default: false)
+- `exclusive` - Boolean to enable exclusive locking (default: false)
 
 **Properties**:
 - `ensure` - Set to `present` to execute (default: `present`)
 
 ## Limitations
-
-### Current Limitations
-
-- **No change detection**: Provider doesn't parse Ansible output to detect changes (always reports as changed)
-- **Always executes**: Runs playbook every time Puppet applies (idempotency via Ansible only)
 
 ### Platform Support
 
@@ -216,13 +262,28 @@ pdk test unit --list
 # Run acceptance tests (requires Ansible installed)
 pdk bundle exec rake acceptance
 
+# Run specific acceptance test feature
+pdk bundle exec rake acceptance FEATURE=spec/acceptance/par_basic.feature
+
+# Run specific scenario by line number
+pdk bundle exec rake acceptance FEATURE=spec/acceptance/par_basic.feature:10
+
 # Test all example manifests
 puppet apply --libdir=lib examples/basic.pp
 puppet apply --libdir=lib examples/with_vars.pp
 puppet apply --libdir=lib examples/tags.pp
 puppet apply --libdir=lib examples/timeout.pp
+puppet apply --libdir=lib examples/idempotent.pp
+puppet apply --libdir=lib examples/logoutput.pp
+puppet apply --libdir=lib examples/exclusive.pp
+puppet apply --libdir=lib examples/init.pp
 puppet apply --libdir=lib --noop examples/noop.pp
 ```
+
+**Important**: 
+- ❌ **Never run `cucumber` directly** - it won't load step definitions properly
+- ✅ **Always use `pdk bundle exec rake acceptance`** - properly configured rake task
+- ✅ Use the `FEATURE` environment variable to run individual tests when debugging
 
 **Note**: Acceptance tests require:
 - Ansible (ansible-playbook) installed and in PATH
@@ -240,34 +301,6 @@ puppet apply --libdir=lib --noop examples/noop.pp
    - `puppet apply --libdir=lib examples/*.pp` - All examples working
 5. Submit a pull request
 
-### Development Roadmap
-
-**Phase 1**: ✅ COMPLETE - Basic playbook execution  
-**Phase 2**: ✅ COMPLETE - Configuration options (variables, tags, limits, verbosity, timeout)  
-**Phase 3**: 🔄 In Progress - Change detection (parse Ansible JSON output)  
-**Phase 4**: 🔄 Planned - Documentation and polish
-
 ## Release Notes
 
-### 0.1.0 (In Development)
-
-Current release with comprehensive playbook execution:
-- PAR custom type and provider
-- Ansible playbook execution on localhost
-- Variable passing with `playbook_vars` parameter
-- Ansible configuration options: tags, skip_tags, start_at_task, limit, verbose, check_mode
-- Timeout handling
-- User and environment variable configuration
-- Noop mode support
-- Automatic File resource dependencies
-- Comprehensive error handling
-- UTF-8 locale configuration for Ansible
-- Full test coverage (115 unit tests, 18 acceptance scenarios)
-
-[1]: https://puppet.com/docs/pdk/latest/pdk_generating_modules.html
-[2]: https://puppet.com/docs/puppet/latest/puppet_strings.html
-[3]: https://puppet.com/docs/puppet/latest/puppet_strings_style.html
-
-[1]: https://puppet.com/docs/pdk/latest/pdk_generating_modules.html
-[2]: https://puppet.com/docs/puppet/latest/puppet_strings.html
-[3]: https://puppet.com/docs/puppet/latest/puppet_strings_style.html
+See [CHANGELOG.md](CHANGELOG.md) for version history and release details.

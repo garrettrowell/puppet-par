@@ -436,7 +436,7 @@ Puppet::Type.newtype(:par) do
     end
   end
 
-  newparam(:environment) do
+  newparam(:env_vars) do
     desc <<~DESC
       Additional environment variables for ansible-playbook execution (optional).
 
@@ -452,17 +452,17 @@ Puppet::Type.newtype(:par) do
 
       @example Set Ansible environment variables
         par { 'custom-config':
-          playbook    => '/etc/ansible/playbooks/deploy.yml',
-          environment => {
-            'ANSIBLE_FORCE_COLOR'        => 'true',
-            'ANSIBLE_HOST_KEY_CHECKING'  => 'false',
+          playbook => '/etc/ansible/playbooks/deploy.yml',
+          env_vars => {
+            'ANSIBLE_FORCE_COLOR'       => 'true',
+            'ANSIBLE_HOST_KEY_CHECKING' => 'false',
           },
         }
     DESC
 
     validate do |value|
       unless value.is_a?(Hash)
-        raise Puppet::Error, "environment must be a Hash, got #{value.class}"
+        raise Puppet::Error, "env_vars must be a Hash, got #{value.class}"
       end
     end
   end

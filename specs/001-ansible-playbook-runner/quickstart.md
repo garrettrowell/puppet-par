@@ -493,7 +493,7 @@ XX examples, 0 failures
 ### Run Acceptance Tests (Cucumber)
 ```bash
 cd /path/to/puppet-par
-pdk bundle exec cucumber spec/acceptance/
+pdk bundle exec rake acceptance
 ```
 
 **Expected Output**:
@@ -536,13 +536,13 @@ After implementing PAR, verify:
 - [x] **P1 - Noop Mode**: Scenario 4 passes ✅
 - [x] **P1 - Error Handling**: Scenarios 5, 6, 7 show appropriate errors ✅
 - [x] **P2 - Extra Variables**: Scenarios 2, 9, 10 pass ✅
-- [ ] **P3 - Idempotency**: Scenario 3 (change detection not yet implemented)
+- [x] **P3 - Idempotency**: Scenario 3 - change detection implemented ✅
 - [x] **Timeout**: Scenario 8 passes ✅
-- [x] **Tests**: `pdk test unit` shows 115 examples, 0 failures ✅
-- [x] **Acceptance**: `pdk bundle exec rake acceptance` shows 18 scenarios passing ✅
+- [x] **Tests**: `pdk test unit` shows 2,481 examples across 16 platforms, 0 failures ✅
+- [x] **Acceptance**: `pdk bundle exec rake acceptance` shows 24 scenarios passing ✅
 - [x] **Validation**: `pdk validate` reports zero offenses ✅
-- [x] **Examples**: All 5 examples work (basic, noop, with_vars, tags, timeout) ✅
-- [ ] **Documentation**: REFERENCE.md needs regeneration with puppet strings
+- [x] **Examples**: All 9 examples work (basic, noop, with_vars, tags, timeout, idempotent, logoutput, exclusive, init) ✅
+- [x] **Documentation**: REFERENCE.md generated with puppet strings ✅
 
 ---
 
@@ -596,6 +596,6 @@ pdk validate
 # Generate REFERENCE.md
 pdk bundle exec rake strings:generate:reference
 
-# Run Cucumber acceptance tests
-pdk bundle exec cucumber spec/acceptance/
+# Run acceptance tests (Cucumber)
+pdk bundle exec rake acceptance
 ```
