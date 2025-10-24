@@ -1,0 +1,15 @@
+---
+# Simple test playbook for PAR acceptance tests
+# Purpose: Basic "hello world" playbook with no variables required
+# Expected: Always succeeds with 1 changed task
+
+- name: Simple playbook test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  
+  tasks:
+    - name: Display hello message
+      ansible.builtin.debug:
+        msg: "Hello from PAR test playbook"
+      changed_when: true

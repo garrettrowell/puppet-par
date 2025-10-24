@@ -1,10 +1,6 @@
 # par
 
-Welcome to your new module. A short overview of the generated parts can be found
-in the [PDK documentation][1].
-
-The README template below provides a starting point with details about what
-information to include in your README.
+PAR (Puppet Ansible Runner) - Execute Ansible playbooks through Puppet
 
 ## Table of Contents
 
@@ -14,104 +10,297 @@ information to include in your README.
     * [Setup requirements](#setup-requirements)
     * [Beginning with par](#beginning-with-par)
 1. [Usage - Configuration options and additional functionality](#usage)
+1. [Reference - Types and parameters](#reference)
+    * [Quick Reference](#quick-reference)
 1. [Limitations - OS compatibility, etc.](#limitations)
+    * [Platform Support](#platform-support)
+    * [Known Issues](#known-issues)
 1. [Development - Guide for contributing to the module](#development)
+    * [Running Tests](#running-tests)
+    * [Contributing](#contributing)
+1. [Release Notes](#release-notes)
 
 ## Description
 
-Briefly tell users why they might want to use your module. Explain what your
-module does and what kind of problems users can solve with it.
+The PAR module provides a custom Puppet type and provider that enables execution of Ansible playbooks on the local machine. This allows you to integrate Ansible automation into your Puppet-managed infrastructure without requiring SSH access, inventory files, or remote connections.
 
-This should be a fairly short description helps the user decide if your module
-is what they want.
+Key features:
+- Execute Ansible playbooks directly from Puppet catalogs
+- Runs playbooks against localhost only (no SSH required)
+- Supports Puppet noop mode for dry-run testing
+- Automatic dependency management with File resources
+- Comprehensive error handling and validation
+- Change detection via Ansible JSON output parsing
+- Idempotency reporting (shows "created" only when changes occur)
+- Exclusive locking to prevent concurrent playbook execution
+- Full output control with `logoutput` parameter
 
 ## Setup
 
-### What par affects **OPTIONAL**
+### What par affects
 
-If it's obvious what your module touches, you can skip this section. For
-example, folks can probably figure out that your mysql_instance module affects
-their MySQL instances.
+* Executes `ansible-playbook` command on the local system
+* May modify system state based on playbook content
+* Requires Ansible to be installed and available in PATH
 
-If there's more that they should know about, though, this is the place to
-mention:
+### Setup Requirements
 
-* Files, packages, services, or operations that the module will alter, impact,
-  or execute.
-* Dependencies that your module automatically installs.
-* Warnings or other important notices.
+**Required**:
+- Puppet 7.24 or higher
+- Ansible 2.9 or higher (ansible-playbook command must be in PATH)
 
-### Setup Requirements **OPTIONAL**
-
-If your module requires anything extra before setting up (pluginsync enabled,
-another module, etc.), mention it here.
-
-If your most recent release breaks compatibility or requires particular steps
-for upgrading, you might want to include an additional "Upgrading" section here.
+**Supported Platforms**:
+- RHEL/CentOS/AlmaLinux/Rocky 7-9
+- Debian 10-12
+- Ubuntu 18.04-22.04
+- Windows Server 2019-2022, Windows 10-11
 
 ### Beginning with par
 
-The very basic steps needed for a user to get the module up and running. This
-can include setup steps, if necessary, or it can be an example of the most basic
-use of the module.
+1. Install the module by adding it to your `Puppetfile`:
+   ```ruby
+   mod 'par',
+     git: 'git@github.com:garrettrowell/puppet-par.git',
+     tag: '0.1.0'
+   ```
+
+2. Ensure Ansible is installed on your nodes:
+   ```bash
+   # RHEL/CentOS/Fedora
+   sudo dnf install ansible-core
+   
+   # Debian/Ubuntu
+   sudo apt install ansible
+   ```
+
+3. Create a simple playbook and use PAR to execute it:
+   ```puppet
+   file { '/etc/ansible/playbooks/setup.yml':
+     ensure => file,
+     source => 'puppet:///modules/mymodule/setup.yml',
+   }
+   
+   par { 'run-setup':
+     ensure   => present,
+     playbook => '/etc/ansible/playbooks/setup.yml',
+   }
+   ```
 
 ## Usage
 
-Include usage examples for common use cases in the **Usage** section. Show your
-users how to use your module to solve problems, and be sure to include code
-examples. Include three to five examples of the most important or common tasks a
-user can accomplish with your module. Show users how to accomplish more complex
-tasks that involve different types, classes, and functions working in tandem.
+For complete working examples, see the [examples/](examples/) directory which includes:
+- `basic.pp` - Simple playbook execution
+- `with_vars.pp` - Passing variables to playbooks
+- `tags.pp` - Using tags for selective execution
+- `timeout.pp` - Timeout and exclusive locking
+- `idempotent.pp` - Change detection demonstration
+- `logoutput.pp` - Output control
+- `exclusive.pp` - Exclusive locking
+- `noop.pp` - Noop mode testing
+- `init.pp` - Comprehensive example with all parameters
+
+### Basic playbook execution
+
+```puppet
+par { 'setup-webserver':
+  ensure   => present,
+  playbook => '/etc/ansible/playbooks/webserver.yml',
+}
+```
+
+### Passing variables to playbooks
+
+```puppet
+par { 'deploy-app':
+  ensure        => present,
+  playbook      => '/etc/ansible/playbooks/deploy.yml',
+  playbook_vars => {
+    'app_version' => '2.1.0',
+    'environment' => 'production',
+    'debug_mode'  => true,
+  },
+}
+```
+
+### Using tags for selective execution
+
+```puppet
+par { 'run-database-tasks':
+  ensure   => present,
+  playbook => '/etc/ansible/playbooks/full-setup.yml',
+  tags     => ['database', 'config'],
+}
+```
+
+### With timeout and exclusive locking
+
+```puppet
+par { 'critical-deployment':
+  ensure    => present,
+  playbook  => '/etc/ansible/playbooks/deploy.yml',
+  timeout   => 600,      # 10 minutes max
+  exclusive => true,     # Prevent concurrent execution
+  logoutput => true,     # Display full Ansible output
+}
+```
+
+### With automatic dependency management
+
+PAR automatically creates dependencies on File resources that manage the playbook:
+
+```puppet
+file { '/etc/ansible/playbooks/database.yml':
+  ensure => file,
+  source => 'puppet:///modules/mymodule/database.yml',
+}
+
+par { 'configure-database':
+  ensure   => present,
+  playbook => '/etc/ansible/playbooks/database.yml',
+  # Automatically requires File['/etc/ansible/playbooks/database.yml']
+}
+```
+
+### Testing with noop mode
+
+```bash
+# Preview what would execute without actually running
+puppet apply --noop mymanifest.pp
+```
+
+### Change detection and idempotency
+
+PAR automatically detects changes made by Ansible playbooks:
+
+```puppet
+# First run: Creates files, Puppet shows "ensure: created"
+# Second run: Files exist, NO "created" message (idempotent)
+par { 'idempotent-config':
+  ensure   => present,
+  playbook => '/etc/ansible/playbooks/config.yml',
+}
+```
+
+When a playbook makes changes (Ansible reports `changed > 0`), Puppet shows:
+```
+Notice: /Stage[main]/Main/Par[idempotent-config]/ensure: created
+Info: Ansible playbook execution completed: 2 tasks changed
+```
+
+When a playbook is idempotent (no changes needed), Puppet shows:
+```
+Notice: Applied catalog in X.XX seconds
+```
+(No "created" message - resource is already in desired state)
+
+### Important behavior notes
+
+- **Change detection**: PAR executes playbooks and reports "created" only when Ansible reports changes
+- **Idempotency**: First run may show "created", subsequent runs won't if playbook is idempotent
+- **Always executes**: Playbook runs every time to check for changes (similar to Ansible's model)
+- **Localhost only**: Playbooks should target localhost with `connection: local`
+- **UTF-8 locale**: Provider automatically sets LC_ALL and LANG environment variables for Ansible compatibility
+- **Exclusive locking**: Use `exclusive => true` to prevent concurrent execution of the same playbook
 
 ## Reference
 
-This section is deprecated. Instead, add reference information to your code as
-Puppet Strings comments, and then use Strings to generate a REFERENCE.md in your
-module. For details on how to add code comments and generate documentation with
-Strings, see the [Puppet Strings documentation][2] and [style guide][3].
+See [REFERENCE.md](REFERENCE.md) for detailed API documentation.
 
-If you aren't ready to use Strings yet, manually create a REFERENCE.md in the
-root of your module directory and list out each of your module's classes,
-defined types, facts, functions, Puppet tasks, task plans, and resource types
-and providers, along with the parameters for each.
+### Quick Reference
 
-For each element (class, defined type, function, and so on), list:
+**Type**: `par`
 
-* The data type, if applicable.
-* A description of what the element does.
-* Valid values, if the data type doesn't make it obvious.
-* Default value, if any.
+**Parameters**:
+- `name` (namevar) - Unique identifier for the resource
+- `playbook` (required) - Absolute path to Ansible playbook file
+- `playbook_vars` - Hash of variables to pass to the playbook
+- `tags` - Array of tags to execute
+- `skip_tags` - Array of tags to skip
+- `start_at_task` - Task name to start execution from
+- `limit` - Limit execution to specific hosts pattern
+- `verbose` - Boolean to enable verbose output
+- `check_mode` - Boolean to run playbook in check mode
+- `timeout` - Maximum execution time in seconds
+- `user` - User to run ansible-playbook as
+- `env_vars` - Hash of environment variables
+- `logoutput` - Boolean to display full Ansible output (default: false)
+- `exclusive` - Boolean to enable exclusive locking (default: false)
 
-For example:
-
-```
-### `pet::cat`
-
-#### Parameters
-
-##### `meow`
-
-Enables vocalization in your cat. Valid options: 'string'.
-
-Default: 'medium-loud'.
-```
+**Properties**:
+- `ensure` - Set to `present` to execute (default: `present`)
 
 ## Limitations
 
-In the Limitations section, list any incompatibilities, known issues, or other
-warnings.
+### Platform Support
+
+- Tested on RHEL-family and Debian-family Linux distributions
+- Windows support is declared but not yet thoroughly tested
+- Ansible must be installed separately (not managed by this module)
+
+### Known Issues
+
+- Playbooks must target localhost - remote execution not supported
+- Playbooks should use `connection: local` for best results
+- No integration with Ansible inventory systems
 
 ## Development
 
-In the Development section, tell other users the ground rules for contributing
-to your project and how they should submit their work.
+This module is under active development. Contributions are welcome!
 
-## Release Notes/Contributors/Etc. **Optional**
+### Running Tests
 
-If you aren't using changelog, put your release notes here (though you should
-consider using changelog). You can also add any additional sections you feel are
-necessary or important to include here. Please use the `##` header.
+```bash
+# Validate code
+pdk validate
 
-[1]: https://puppet.com/docs/pdk/latest/pdk_generating_modules.html
-[2]: https://puppet.com/docs/puppet/latest/puppet_strings.html
-[3]: https://puppet.com/docs/puppet/latest/puppet_strings_style.html
+# Run unit tests  
+pdk test unit -v
+
+# List available unit tests
+pdk test unit --list
+
+# Run acceptance tests (requires Ansible installed)
+pdk bundle exec rake acceptance
+
+# Run specific acceptance test feature
+pdk bundle exec rake acceptance FEATURE=spec/acceptance/par_basic.feature
+
+# Run specific scenario by line number
+pdk bundle exec rake acceptance FEATURE=spec/acceptance/par_basic.feature:10
+
+# Test all example manifests
+puppet apply --libdir=lib examples/basic.pp
+puppet apply --libdir=lib examples/with_vars.pp
+puppet apply --libdir=lib examples/tags.pp
+puppet apply --libdir=lib examples/timeout.pp
+puppet apply --libdir=lib examples/idempotent.pp
+puppet apply --libdir=lib examples/logoutput.pp
+puppet apply --libdir=lib examples/exclusive.pp
+puppet apply --libdir=lib examples/init.pp
+puppet apply --libdir=lib --noop examples/noop.pp
+```
+
+**Important**: 
+- ❌ **Never run `cucumber` directly** - it won't load step definitions properly
+- ✅ **Always use `pdk bundle exec rake acceptance`** - properly configured rake task
+- ✅ Use the `FEATURE` environment variable to run individual tests when debugging
+
+**Note**: Acceptance tests require:
+- Ansible (ansible-playbook) installed and in PATH
+- Ability to execute playbooks on localhost
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Write tests for your changes
+4. Ensure all validation steps pass:
+   - `pdk validate` - Zero offenses
+   - `pdk test unit` - All tests passing
+   - `pdk bundle exec rake acceptance` - All scenarios passing
+   - `puppet apply --libdir=lib examples/*.pp` - All examples working
+5. Submit a pull request
+
+## Release Notes
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release details.
